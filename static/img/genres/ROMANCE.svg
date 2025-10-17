@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 430">
+  <rect width="320" height="430" fill="#e5e7eb"/>
+  <rect x="40" y="60" width="240" height="310" fill="#cbd5e1" rx="8"/>
+  <text x="50%" y="220" text-anchor="middle" font-family="Segoe UI, Arial" font-size="28" fill="#111827">GENRE</text>
+</svg>

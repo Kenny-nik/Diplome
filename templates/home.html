@@ -1,164 +1,69 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Библиотечная система{% endblock %}</title>
+{% extends "base.html" %}
+{% load static %}
 
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+{% block title %}Главная — Библиотека{% endblock %}
 
-    <style>
-        .navbar-brand {
-            font-weight: bold;
-        }
-        .sidebar {
-            min-height: calc(100vh - 56px);
-            background-color: #f8f9fa;
-        }
-        .main-content {
-            padding: 20px;
-        }
-        .book-card {
-            transition: transform 0.2s;
-        }
-        .book-card:hover {
-            transform: translateY(-5px);
-        }
-    </style>
-</head>
-<body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="{% url 'home' %}">
-                <i class="fas fa-book"></i> Библиотека
-            </a>
+{% block content %}
+<div class="container">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Рекомендации</h2>
+    <a href="{% url 'book_list' %}" class="btn btn-outline-primary">Каталог</a>
+  </div>
 
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'book_list' %}">
-                            <i class="fas fa-books"></i> Книги
-                        </a>
-                    </li>
-                    {% if user.is_authenticated %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'my_loans' %}">
-                                <i class="fas fa-list"></i> Мои книги
-                            </a>
-                        </li>
-                    {% endif %}
-                    {% if user.is_librarian %}
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-tools"></i> Управление
-                            </a>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{% url 'book_create' %}">Добавить книгу</a></li>
-                                <li><a class="dropdown-item" href="{% url 'all_loans' %}">Все выдачи</a></li>
-                                {% if user.is_admin %}
-                                    <li><a class="dropdown-item" href="{% url 'user_list' %}">Пользователи</a></li>
-                                {% endif %}
-                            </ul>
-                        </li>
-                    {% endif %}
-                </ul>
-
-                <ul class="navbar-nav">
-                    {% if user.is_authenticated %}
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-user"></i> {{ user.email }}
-                            </a>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{% url 'profile' %}">Профиль</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li>
-                                    <form method="post" action="{% url 'logout' %}" class="d-inline">
-                                        {% csrf_token %}
-                                        <button type="submit" class="dropdown-item">Выйти</button>
-                                    </form>
-                                </li>
-                            </ul>
-                        </li>
-                    {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'login' %}">
-                                <i class="fas fa-sign-in-alt"></i> Войти
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'register' %}">
-                                <i class="fas fa-user-plus"></i> Регистрация
-                            </a>
-                        </li>
-                    {% endif %}
-                </ul>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Main Content -->
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar (optional) -->
-            {% if user.is_librarian %}
-            <div class="col-md-2 sidebar d-none d-md-block">
-                <div class="p-3">
-                    <h6>Администрирование</h6>
-                    <ul class="nav nav-pills flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'book_create' %}">
-                                <i class="fas fa-plus"></i> Добавить книгу
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'all_loans' %}">
-                                <i class="fas fa-list"></i> Все выдачи
-                            </a>
-                        </li>
-                        {% if user.is_admin %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'user_list' %}">
-                                <i class="fas fa-users"></i> Пользователи
-                            </a>
-                        </li>
-                        {% endif %}
-                    </ul>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Main content area -->
-            <div class="{% if user.is_librarian %}col-md-10{% else %}col-12{% endif %} main-content">
-                <!-- Messages -->
-                {% if messages %}
-                    {% for message in messages %}
-                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    {% endfor %}
+  {% if recommended_books %}
+    <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-3">
+      {% for book in recommended_books %}
+        <div class="col">
+          <div class="card h-100 book-card shadow-sm">
+            <div class="ratio ratio-3x4 bg-light">
+              {% if book.cover_url %}
+                <img src="{{ book.cover_url }}" class="card-img-top object-fit-cover w-100 h-100" alt="{{ book.title }}">
+              {% else %}
+                {% if book.genre == "SCI_FI" %}
+                  <img src="{% static 'img/genres/SCI_FI.svg' %}" class="card-img-top object-fit-cover w-100 h-100" alt="{{ book.title }}">
+                {% elif book.genre == "MYSTERY" %}
+                  <img src="{% static 'img/genres/MYSTERY.svg' %}" class="card-img-top object-fit-cover w-100 h-100" alt="{{ book.title }}">
+                {% elif book.genre == "ROMANCE" %}
+                  <img src="{% static 'img/genres/ROMANCE.svg' %}" class="card-img-top object-fit-cover w-100 h-100" alt="{{ book.title }}">
+                {% elif book.genre == "HISTORY" %}
+                  <img src="{% static 'img/genres/HISTORY.svg' %}" class="card-img-top object-fit-cover w-100 h-100" alt="{{ book.title }}">
+                {% elif book.genre == "SCIENCE" %}
+                  <img src="{% static 'img/genres/SCIENCE.svg' %}" class="card-img-top object-fit-cover w-100 h-100" alt="{{ book.title }}">
+                {% elif book.genre == "TECH" %}
+                  <img src="{% static 'img/genres/TECH.svg' %}" class="card-img-top object-fit-cover w-100 h-100" alt="{{ book.title }}">
+                {% else %}
+                  <img src="{% static 'img/genres/FICTION.svg' %}" class="card-img-top object-fit-cover w-100 h-100" alt="{{ book.title }}">
                 {% endif %}
-
-                <!-- Page Content -->
-                {% block content %}
-                {% endblock %}
+              {% endif %}
             </div>
+
+            <div class="card-body p-2 d-flex flex-column">
+              <div class="fw-semibold text-truncate" title="{{ book.title }}">{{ book.title }}</div>
+              <div class="small text-muted text-truncate" title="{{ book.author }}">{{ book.author }}</div>
+
+              <div class="mt-1 mb-2">
+                <span class="badge bg-warning text-dark">★ {{ book.rating|floatformat:1 }}</span>
+                <span class="badge bg-secondary ms-1">В наличии: {{ book.available_copies }}</span>
+              </div>
+
+              {% if user.is_authenticated and not user.is_librarian %}
+                <form method="post" action="{% url 'book_borrow' book.pk %}" class="mt-auto">
+                  {% csrf_token %}
+                  <button
+                    class="btn btn-sm btn-primary w-100"
+                    {% if not book.is_available or book.available_copies|default:0 < 1 %}disabled{% endif %}
+                  >
+                    Добавить
+                  </button>
+                </form>
+              {% endif %}
+            </div>
+          </div>
         </div>
+      {% endfor %}
     </div>
-
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-
-    {% block extra_js %}
-    {% endblock %}
-</body>
-</html>
+  {% else %}
+    <div class="alert alert-info">Пока нет рекомендаций.</div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 430">
+  <rect width="320" height="430" fill="#f2f2f2"/>
+  <rect x="40" y="60" width="240" height="310" fill="#e0e0e0" rx="8"/>
+  <rect x="60" y="80" width="200" height="20" fill="#d0d0d0"/>
+  <rect x="60" y="120" width="200" height="10" fill="#d8d8d8"/>
+  <rect x="60" y="140" width="200" height="10" fill="#d8d8d8"/>
+  <rect x="60" y="160" width="200" height="10" fill="#d8d8d8"/>
+  <text x="50%" y="400" text-anchor="middle" font-family="Arial" font-size="16" fill="#888">No cover</text>
+</svg>
