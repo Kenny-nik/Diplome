@@ -13,3 +13,10 @@ class IsOwnerOrLibrarian(permissions.BasePermission):
 
         # Пользователи могут видеть только свои займы
         return obj.user == request.user
+
+class IsLibrarian(permissions.BasePermission):
+    """
+    Разрешение для библиотекаря (staff) или суперпользователя.
+    """
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_staff)

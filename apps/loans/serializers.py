@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import Loan
 from apps.books.serializers import BookSerializer
-from apps.users.serializers import UserSerializer
+from apps.users.serializers import UserCreateSerializer
 
 
 class LoanSerializer(serializers.ModelSerializer):
