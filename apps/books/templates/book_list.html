@@ -4,6 +4,11 @@
 {% block title %}Каталог книг{% endblock %}
 
 {% block content %}
+<style>
+  .cover-stack { position: relative; width: 100%; height: 100%; }
+  .cover-stack img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+</style>
+
 <div class="container">
   <h2 class="mb-3">Каталог книг</h2>
 
@@ -40,25 +45,27 @@
         <div class="col">
           <div class="card h-100 book-card">
             <div class="ratio ratio-3x4 bg-light">
-              {% if book.cover_url %}
-                <img src="{{ book.cover_url }}" class="card-img-top object-fit-cover w-100 h-100" alt="{{ book.title }}">
-              {% else %}
+              <div class="cover-stack">
                 {% if book.genre == "SCI_FI" %}
-                  <img src="{% static 'img/genres/SCI_FI.svg' %}" class="card-img-top object-fit-cover w-100 h-100" alt="{{ book.title }}">
+                  <img src="{% static 'img/genres/SCI_FI.svg' %}" alt="sci-fi cover">
                 {% elif book.genre == "MYSTERY" %}
-                  <img src="{% static 'img/genres/MYSTERY.svg' %}" class="card-img-top object-fit-cover w-100 h-100" alt="{{ book.title }}">
+                  <img src="{% static 'img/genres/MYSTERY.svg' %}" alt="mystery cover">
                 {% elif book.genre == "ROMANCE" %}
-                  <img src="{% static 'img/genres/ROMANCE.svg' %}" class="card-img-top object-fit-cover w-100 h-100" alt="{{ book.title }}">
+                  <img src="{% static 'img/genres/ROMANCE.svg' %}" alt="romance cover">
                 {% elif book.genre == "HISTORY" %}
-                  <img src="{% static 'img/genres/HISTORY.svg' %}" class="card-img-top object-fit-cover w-100 h-100" alt="{{ book.title }}">
+                  <img src="{% static 'img/genres/HISTORY.svg' %}" alt="history cover">
                 {% elif book.genre == "SCIENCE" %}
-                  <img src="{% static 'img/genres/SCIENCE.svg' %}" class="card-img-top object-fit-cover w-100 h-100" alt="{{ book.title }}">
+                  <img src="{% static 'img/genres/SCIENCE.svg' %}" alt="science cover">
                 {% elif book.genre == "TECH" %}
-                  <img src="{% static 'img/genres/TECH.svg' %}" class="card-img-top object-fit-cover w-100 h-100" alt="{{ book.title }}">
+                  <img src="{% static 'img/genres/TECH.svg' %}" alt="tech cover">
                 {% else %}
-                  <img src="{% static 'img/genres/FICTION.svg' %}" class="card-img-top object-fit-cover w-100 h-100" alt="{{ book.title }}">
+                  <img src="{% static 'img/genres/FICTION.svg' %}" alt="fiction cover">
                 {% endif %}
-              {% endif %}
+
+                {% if book.cover_url %}
+                  <img src="{{ book.cover_url }}" alt="{{ book.title }}" onerror="this.style.display='none';">
+                {% endif %}
+              </div>
             </div>
 
             <div class="card-body p-2 d-flex flex-column">
