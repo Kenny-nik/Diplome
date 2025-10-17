@@ -36,6 +36,13 @@ class Book(models.Model):
             models.Index(fields=['genre']),
         ]
 
+    added_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='added_books'
+    )
+
     def __str__(self):
         return f"{self.title} by {self.author}"
 

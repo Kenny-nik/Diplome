@@ -1,0 +1,9 @@
+<h1>{{ book.title }}</h1>
+<p><strong>Автор:</strong> {{ book.author }}</p>
+<p><strong>Дата публикации:</strong> {{ book.published_date }}</p>
+<p>{{ book.description|default:"Нет описания" }}</p>
+{% if book.thumbnail %}
+    <img src="{{ book.thumbnail }}" alt="{{ book.title }}">
+{% endif %}
+<p><a href="{{ book.info_link }}" target="_blank">Подробнее на внешнем сайте</a></p>
+<p><strong>Статус:</strong> {{ book.is_available|yesno:"Доступна,Занята" }}</p>

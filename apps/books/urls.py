@@ -9,7 +9,9 @@ urlpatterns = [
     path('<int:pk>/update/', views.BookUpdateView.as_view(), name='book_update'),
     path('<int:pk>/delete/', views.BookDeleteView.as_view(), name='book_delete'),
     path('<int:pk>/borrow/', views.BookBorrowView.as_view(), name='book_borrow'),
+    path('my-books/', views.MyBooksView.as_view(), name='my_loans'),
 
     # API URLs (оставляем существующие)
     path('api/', include('apps.books.api_urls')),
+    path('my-books/', views.MyBooksView.as_view(), name='my_books'),
 ]

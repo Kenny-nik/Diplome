@@ -1,0 +1,25 @@
+<h1>Результаты поиска: "{{ query }}"</h1>
+
+<form method="get">
+    <input type="text" name="q" placeholder="Поиск книги" value="{{ query }}">
+    <button type="submit">Поиск</button>
+</form>
+
+{% if books %}
+    <ul>
+    {% for book in books %}
+        <li>
+            <h3>{{ book.title }}</h3>
+            <p><strong>Авторы:</strong> {{ book.authors }}</p>
+            <p><strong>Дата публикации:</strong> {{ book.published_date }}</p>
+            {% if book.thumbnail %}
+                <img src="{{ book.thumbnail }}" alt="{{ book.title }}">
+            {% endif %}
+            <p>{{ book.description|default:"Нет описания" }}</p>
+            <a href="{{ book.info_link }}" target="_blank">Подробнее</a>
+        </li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>Ничего не найдено.</p>
+{% endif %}

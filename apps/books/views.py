@@ -258,3 +258,8 @@ class BookBorrowView(LoginRequiredMixin, UserPassesTestMixin, View):
         messages.success(request,
                          f'Книга "{book.title}" успешно взята! Верните до {loan.due_date.strftime("%d.%m.%Y")}')
         return redirect('my_loans')
+
+class MyBooksView(LoginRequiredMixin, ListView):
+    model = Book
+    template_name = 'books/my_books.html'
+    context_object_name = 'books'
