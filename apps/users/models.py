@@ -9,6 +9,7 @@ class User(AbstractUser):
         ('ADMIN', 'Administrator'),
     ]
 
+    # поля, которых не было в стандартном пользователе
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='READER')
     phone_number = models.CharField(max_length=15, blank=True)
@@ -17,7 +18,6 @@ class User(AbstractUser):
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
-
     def __str__(self):
         return f"{self.email} ({self.role})"
 
@@ -28,3 +28,8 @@ class User(AbstractUser):
     @property
     def is_admin(self):
         return self.role == 'ADMIN'
+
+
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    bio = models.TextField(blank=True, null=True)
