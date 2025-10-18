@@ -1,7 +1,6 @@
-from datetime import timedelta, datetime
+from datetime import timedelta
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.views import View
@@ -14,7 +13,9 @@ from django.views.generic import (
     DeleteView,
 )
 from django.utils import timezone
-from .models import Book, Loan
+
+from .models import Book
+from apps.loans.models import Loan
 
 
 # ---------- ГЛАВНАЯ: рекомендации ----------
@@ -23,7 +24,6 @@ class HomePageView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Топ-5 по рейтингу, среди доступных. При равном рейтинге — новее выше.
         context["recommended_books"] = (
             Book.objects.filter(is_available=True)
             .order_by("-rating", "-created_at")[:5]
@@ -31,7 +31,7 @@ class HomePageView(TemplateView):
         return context
 
 
-# ---------- КАТАЛОГ: фильтрация по жанру, названию и автору ----------
+# ---------- КАТАЛОГ ----------
 class BookListView(ListView):
     model = Book
     template_name = "books/book_list.html"
@@ -71,8 +71,20 @@ class BookDetailView(DetailView):
     template_name = "books/book_detail.html"
     context_object_name = "book"
 
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        book = self.object
+        user = self.request.user
+        ctx["can_borrow"] = (
+            user.is_authenticated
+            and not getattr(user, "is_librarian", False)
+            and book.is_available
+            and (book.available_copies or 0) > 0
+        )
+        return ctx
 
-# ---------- СОЗДАНИЕ/РЕДАКТИРОВАНИЕ/УДАЛЕНИЕ КНИГ ----------
+
+# ---------- CRUD для библиотекаря ----------
 class BookCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     model = Book
     template_name = "books/book_form.html"
@@ -89,7 +101,7 @@ class BookCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         "available_copies",
         "is_available",
     ]
-    success_url = reverse_lazy("book_list")
+    success_url = reverse_lazy("books:book_list")
 
     def test_func(self):
         return getattr(self.request.user, "is_librarian", False)
@@ -124,13 +136,13 @@ class BookUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse_lazy("book_detail", kwargs={"pk": self.object.pk})
+        return reverse_lazy("books:book_detail", kwargs={"pk": self.object.pk})
 
 
 class BookDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     model = Book
     template_name = "books/book_confirm_delete.html"
-    success_url = reverse_lazy("book_list")
+    success_url = reverse_lazy("books:book_list")
 
     def test_func(self):
         return getattr(self.request.user, "is_librarian", False)
@@ -140,71 +152,92 @@ class BookDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         return super().delete(request, *args, **kwargs)
 
 
-# ---------- ДОБАВИТЬ В «МОИ КНИГИ» ----------
-class BookBorrowView(LoginRequiredMixin, UserPassesTestMixin, View):
-    """
-    Читатель берёт книгу (Loan). return_date остаётся пустой до возврата.
-    """
-    def test_func(self):
-        return not getattr(self.request.user, "is_librarian", False)
-
+# ---------- Добавить в «Мои книги» ----------
+class BookBorrowView(LoginRequiredMixin, View):
     def post(self, request, pk):
         book = get_object_or_404(Book, pk=pk)
 
-        if book.available_copies <= 0:
-            messages.error(request, "Извините, все экземпляры книги уже выданы.")
-            return redirect("book_detail", pk=pk)
+        if (book.available_copies or 0) <= 0:
+            messages.error(request, "Извините, все экземпляры уже выданы.")
+            return redirect("books:book_detail", pk=pk)
 
-        # Уже есть активный займ этой книги?
-        existing = Loan.objects.filter(book=book, borrower=request.user, return_date__isnull=True).first()
-        if existing:
-            messages.warning(request, "Эта книга уже есть в ваших «Моих книгах».")
-            return redirect("my_loans")
+        # запрет на повторную выдачу той же книги
+        if Loan.objects.filter(user=request.user, book=book, return_date__isnull=True).exists():
+            messages.warning(request, "Вы уже взяли эту книгу.")
+            return redirect("books:book_detail", pk=pk)
 
-        Loan.objects.create(book=book, borrower=request.user)
-        book.available_copies = max(0, book.available_copies - 1)
+        loan = Loan.objects.create(
+            book=book,
+            user=request.user,
+            # Берём «сегодня» независимо от USE_TZ
+            due_date=timezone.now().date() + timedelta(days=14),
+        )
+
+        book.available_copies = max(0, (book.available_copies or 0) - 1)
         book.is_available = book.available_copies > 0
         book.save(update_fields=["available_copies", "is_available"])
 
-        messages.success(request, f'Книга «{book.title}» добавлена в «Мои книги».')
-        return redirect("my_loans")
+        messages.success(
+            request,
+            f'Книга «{book.title}» добавлена. Верните до {loan.due_date.strftime("%d.%m.%Y")}.'
+        )
+        return redirect("books:book_detail", pk=pk)
 
 
-# ---------- УБРАТЬ ИЗ «МОИХ КНИГ» (возврат) ----------
+# ---------- Вернуть / убрать из «моих книг» ----------
 class BookReturnView(LoginRequiredMixin, View):
-    """
-    Закрывает активный Loan текущего пользователя по указанной книге.
-    """
     def post(self, request, pk):
         book = get_object_or_404(Book, pk=pk)
-        loan = Loan.objects.filter(book=book, borrower=request.user, return_date__isnull=True).first()
+        loan = Loan.objects.filter(book=book, user=request.user, return_date__isnull=True).first()
         if not loan:
             messages.info(request, "Активной выдачи этой книги у вас нет.")
-            return redirect("my_loans")
+            return redirect("books:my_books")
 
-        loan.return_date = timezone.now().date()
-        loan.save(update_fields=["return_date"])
+        loan.return_date = timezone.now()   # DateTimeField
+        loan.save(update_fields=["return_date", "status"])
 
-        book.available_copies += 1
+        book.available_copies = (book.available_copies or 0) + 1
         book.is_available = True
         book.save(update_fields=["available_copies", "is_available"])
 
         messages.success(request, f'Книга «{book.title}» удалена из «Моих книг».')
-        return redirect("my_loans")
+        return redirect("books:my_books")
 
 
-# ---------- МОИ КНИГИ (веб-страница) ----------
+class BookRemoveView(LoginRequiredMixin, View):
+    """Снять книгу из 'моих книг' (символическое 'вернуть')."""
+    def post(self, request, pk):
+        book = get_object_or_404(Book, pk=pk)
+        loan = Loan.objects.filter(user=request.user, book=book, return_date__isnull=True).first()
+        if not loan:
+            messages.info(request, "У вас нет активной выдачи этой книги.")
+            return redirect("books:book_detail", pk=pk)
+
+        loan.return_date = timezone.now()   # DateTimeField
+        loan.save(update_fields=["return_date", "status"])
+
+        book.available_copies = (book.available_copies or 0) + 1
+        book.is_available = True
+        book.save(update_fields=["available_copies", "is_available"])
+
+        messages.success(request, f'Книга «{book.title}» убрана из "Моих книг".')
+        return redirect("books:book_detail", pk=pk)
+
+
+# ---------- Мои книги ----------
 class MyBooksView(LoginRequiredMixin, TemplateView):
-    """
-    Шаблон получает список активных займов пользователя.
-    """
     template_name = "books/my_books.html"
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["loans"] = (
-            Loan.objects.filter(borrower=self.request.user, return_date__isnull=True)
+            Loan.objects.filter(user=self.request.user, return_date__isnull=True)
             .select_related("book")
             .order_by("-loan_date")
         )
         return ctx
+
+
+class BooksCatalogView(BookListView):
+    """Обёртка для совместимости с web_urls.py."""
+    pass

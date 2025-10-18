@@ -22,12 +22,16 @@
   }
   .book-card{ transition: transform .15s ease; }
   .book-card:hover{ transform: translateY(-3px); }
+
+  /* чтобы stretched-link не перекрывал кнопки */
+  .card.position-relative .stretched-link{ z-index:1; }
+  .card.position-relative .btn{ position:relative; z-index:2; }
 </style>
 
 <div class="container">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="mb-0">Мои книги</h2>
-    <a href="{% url 'book_list' %}" class="btn btn-outline-primary">Каталог</a>
+    <a href="{% url 'books:book_list' %}" class="btn btn-outline-primary">Каталог</a>
   </div>
 
   {% if loans %}
@@ -35,21 +39,28 @@
       {% for loan in loans %}
         {% with book=loan.book %}
         <div class="col">
-          <div class="card h-100 book-card">
+          <div class="card h-100 book-card position-relative">
             <div class="book-thumb">
               {% cover_for_book book as cover_rel %}
               <img src="{% static cover_rel %}" alt="{{ book.title }}">
               {% if book.cover_url %}
-                <img src="{{ book.cover_url }}" alt="{{ book.title }}" onerror="this.style.display='none'">
+                <img src="{{ book.cover_url }}" alt="{{ book.title }}"
+                     onerror="this.style.display='none'">
               {% endif %}
             </div>
 
             <div class="card-body p-2 d-flex flex-column">
+              <a href="{% url 'books:book_detail' book.pk %}" class="stretched-link"></a>
+
               <div class="fw-semibold text-truncate" title="{{ book.title }}">{{ book.title }}</div>
               <div class="small text-muted text-truncate" title="{{ book.author }}">{{ book.author }}</div>
-              <div class="small text-muted">Взята: {{ loan.loan_date|date:"d.m.Y" }}</div>
 
-              <form method="post" action="{% url 'book_remove' book.pk %}" class="mt-auto">
+              <div class="mt-1 mb-2">
+                <span class="badge bg-warning text-dark">★ {{ book.rating|floatformat:1 }}</span>
+                <span class="badge bg-secondary ms-1">До: {{ loan.due_date|date:"d.m.Y" }}</span>
+              </div>
+
+              <form method="post" action="{% url 'books:book_remove' book.pk %}" class="mt-auto">
                 {% csrf_token %}
                 <button class="btn btn-sm btn-outline-danger w-100">Убрать</button>
               </form>
@@ -60,7 +71,9 @@
       {% endfor %}
     </div>
   {% else %}
-    <div class="alert alert-info">У вас пока нет активных книг.</div>
+    <div class="alert alert-info">
+      Список пуст. Перейдите в <a href="{% url 'books:book_list' %}">каталог</a> и добавьте книги.
+    </div>
   {% endif %}
 </div>
 {% endblock %}

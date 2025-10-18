@@ -6,67 +6,44 @@
 
 {% block content %}
 <style>
-  /* === HERO-оформление главного блока === */
-  .hero-head {
-    display:flex; align-items:center; gap:1rem; margin-bottom: .75rem;
-  }
-  .hero-title {
-    margin:0; font-weight:800; letter-spacing:.5px;
-  }
-  .hero-sub {
-    margin:0; color:#6c757d;
-  }
+  /* === HERO === */
+  .hero-head{display:flex;align-items:center;gap:1rem;margin-bottom:.75rem}
+  .hero-title{margin:0;font-weight:800;letter-spacing:.5px}
+  .hero-sub{margin:0;color:#6c757d}
 
-  /* Карточки-хиты — крупнее превью, аккуратная обрезка */
-  .book-card{ transition: transform .15s ease, box-shadow .15s ease; border-radius:.75rem; overflow:hidden; }
-  .book-card:hover{ transform: translateY(-4px); box-shadow:0 10px 22px rgba(0,0,0,.12); }
+  /* Карточки-хиты */
+  .book-card{transition:transform .15s ease,box-shadow .15s ease;border-radius:.75rem;overflow:hidden}
+  .book-card:hover{transform:translateY(-4px);box-shadow:0 10px 22px rgba(0,0,0,.12)}
 
-  .book-thumb{
-    position: relative;
-    height: 320px;                 /* БОЛЬШЕ: на главной смотрится как «лицо» */
-    overflow: hidden;
-    background: #f8f9fa;
-  }
-  @media (min-width: 992px){ .book-thumb{ height: 360px; } }   /* ещё крупнее на десктопе */
+  .book-thumb{position:relative;height:320px;overflow:hidden;background:#f8f9fa}
+  @media (min-width: 992px){.book-thumb{height:360px}}
+  .book-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 
-  .book-thumb img{
-    position: absolute; inset: 0;
-    width: 100%; height: 100%;
-    object-fit: cover;
-    display: block;
-  }
+  .hit-badge{position:absolute;top:12px;left:12px;background:linear-gradient(135deg,#ffd24d,#ffc107,#ffb300);
+             color:#1f1f1f;font-weight:800;font-size:.8rem;letter-spacing:.6px;padding:.28rem .6rem;border-radius:.35rem;
+             box-shadow:0 3px 10px rgba(0,0,0,.18);text-transform:uppercase;z-index:3}
 
-  /* Золотой бейдж «ХИТ» */
-  .hit-badge{
-    position:absolute; top:12px; left:12px;
-    background: linear-gradient(135deg,#ffd24d,#ffc107,#ffb300);
-    color:#1f1f1f; font-weight:800; font-size:.8rem; letter-spacing:.6px;
-    padding:.28rem .6rem; border-radius:.35rem;
-    box-shadow:0 3px 10px rgba(0,0,0,.18);
-    text-transform:uppercase;
-    z-index:3;
-  }
+  /* Stretched link не должен перекрывать кнопки */
+  .card.position-relative .stretched-link{z-index:1}
+  .card.position-relative .btn{position:relative;z-index:2}
 </style>
 
 <div class="container">
-
   <div class="d-flex justify-content-between align-items-center">
     <div class="hero-head">
       <h2 class="hero-title">Хиты недели</h2>
       <p class="hero-sub d-none d-sm-block">Топ-5 книг по рейтингу</p>
     </div>
-    <a href="{% url 'book_list' %}" class="btn btn-outline-primary">Каталог</a>
+    <a href="{% url 'books:book_list' %}" class="btn btn-outline-primary">Каталог</a>
   </div>
 
   {% if recommended_books %}
-    <!-- 5 карточек; высота увеличена CSS-ом -->
     <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-4">
       {% for book in recommended_books %}
         <div class="col">
-          <div class="card h-100 book-card shadow-sm">
+          <div class="card h-100 book-card shadow-sm position-relative">
             <div class="book-thumb">
               <div class="hit-badge">ХИТ</div>
-
               {% cover_for_book book as cover_rel %}
               <img src="{% static cover_rel %}" alt="{{ book.title }}">
               {% if book.cover_url %}
@@ -75,6 +52,8 @@
             </div>
 
             <div class="card-body p-3 d-flex flex-column">
+              <a href="{% url 'books:book_detail' book.pk %}" class="stretched-link"></a>
+
               <div class="fw-semibold text-truncate" title="{{ book.title }}">{{ book.title }}</div>
               <div class="small text-muted text-truncate" title="{{ book.author }}">{{ book.author }}</div>
 
@@ -84,7 +63,7 @@
               </div>
 
               {% if user.is_authenticated and not user.is_librarian %}
-                <form method="post" action="{% url 'book_borrow' book.pk %}" class="mt-auto">
+                <form method="post" action="{% url 'books:book_borrow' book.pk %}" class="mt-auto">
                   {% csrf_token %}
                   <button class="btn btn-primary w-100"
                           {% if not book.is_available or book.available_copies|default:0 < 1 %}disabled{% endif %}>

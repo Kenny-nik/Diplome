@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% load static %}
+{% load cover_tags %}
+
+{% block title %}{{ book.title }} — книга{% endblock %}
+
+{% block content %}
+<style>
+  .book-hero{display:grid;grid-template-columns: 280px 1fr;gap:1.5rem}
+  @media (max-width: 768px){.book-hero{grid-template-columns: 1fr}}
+  .cover-wrap{position:relative; width:100%; aspect-ratio:3/4; overflow:hidden; border-radius:.5rem; background:#f8f9fa}
+  .cover-wrap img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
+  .meta dt{font-weight:600}
+  .meta dd{margin-bottom:.5rem}
+  .preview{white-space:pre-wrap;background:#fff;border-radius:.5rem;border:1px solid rgba(0,0,0,.08);padding:1rem;line-height:1.6;max-height:320px;overflow:auto}
+</style>
+
+<div class="container">
+  <div class="mb-3">
+    <a href="{% url 'books:book_list' %}" class="btn btn-sm btn-outline-secondary">&larr; К каталогу</a>
+  </div>
+
+  <div class="book-hero">
+    <!-- Обложка -->
+    <div class="cover-wrap shadow-sm">
+      {% cover_for_book book as cover_rel %}
+      <img src="{% static cover_rel %}" alt="{{ book.title }}">
+      {% if book.cover_url %}
+        <img src="{{ book.cover_url }}" alt="{{ book.title }}" onerror="this.style.display='none'">
+      {% endif %}
+    </div>
+
+    <!-- Описание -->
+    <div>
+      <h3 class="mb-1">{{ book.title }}</h3>
+      <div class="text-muted mb-3">{{ book.author }}</div>
+
+      <dl class="row meta">
+        <dt class="col-sm-3">Жанр</dt><dd class="col-sm-9">{{ book.get_genre_display }}</dd>
+        <dt class="col-sm-3">Год</dt><dd class="col-sm-9">{{ book.publication_year }}</dd>
+        <dt class="col-sm-3">ISBN</dt><dd class="col-sm-9">{{ book.isbn }}</dd>
+        <dt class="col-sm-3">Рейтинг</dt><dd class="col-sm-9">★ {{ book.rating|floatformat:1 }}</dd>
+        <dt class="col-sm-3">В наличии</dt><dd class="col-sm-9">{{ book.available_copies }}</dd>
+      </dl>
+
+      {% if book.description %}
+        <div class="mb-3 preview">
+          {{ book.description }}
+        </div>
+      {% endif %}
+
+      {% if user.is_authenticated and not user.is_librarian %}
+        <form method="post" action="{% url 'books:book_borrow' book.pk %}">
+          {% csrf_token %}
+          <button class="btn btn-primary"
+                  {% if not book.is_available or book.available_copies|default:0 < 1 %}disabled{% endif %}>
+            Добавить
+          </button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
