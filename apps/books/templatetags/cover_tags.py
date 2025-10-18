@@ -1,10 +1,8 @@
-# apps/books/templatetags/cover_tags.py
 import hashlib
 from django import template
 
 register = template.Library()
 
-# Пути относительно каталога static/
 COVER_CHOICES = {
     "FICTION": [
         "img/genre_covers/FICTION/1.jpg",
@@ -58,10 +56,6 @@ COVER_CHOICES = {
 }
 
 def _stable_index(key: str, n: int) -> int:
-    """
-    Стабильное (между перезапусками) вычисление индекса по ключу.
-    Используем md5 вместо встроенного hash(), т.к. у hash() есть salt.
-    """
     if not key:
         key = "fallback-key"
     digest = hashlib.md5(key.encode("utf-8")).hexdigest()
@@ -69,14 +63,17 @@ def _stable_index(key: str, n: int) -> int:
 
 @register.simple_tag
 def cover_for_book(book) -> str:
-    """
-    Вернёт относительный static-путь к одной из обложек жанра,
-    выбранной детерминированно для конкретной книги.
-    """
+    """Стабильная локальная обложка для конкретной книги по её ISBN (или title+author)."""
     genre = (getattr(book, "genre", None) or "FICTION").upper()
     files = COVER_CHOICES.get(genre) or COVER_CHOICES["FICTION"]
-
-    # Ключ — прежде всего ISBN; если его нет, берём title+author.
     key = getattr(book, "isbn", None) or f"{getattr(book, 'title', '')}-{getattr(book, 'author', '')}"
     idx = _stable_index(key, len(files))
+    return files[idx]
+
+@register.simple_tag
+def cover_for_genre(genre_code: str) -> str:
+    """Совместимость со старыми шаблонами: даёт стабильную обложку по жанру."""
+    genre = (genre_code or "FICTION").upper()
+    files = COVER_CHOICES.get(genre) or COVER_CHOICES["FICTION"]
+    idx = _stable_index(genre, len(files))
     return files[idx]

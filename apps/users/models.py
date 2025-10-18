@@ -1,5 +1,8 @@
 from django.contrib.auth.models import AbstractUser
+from django.conf import settings
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 
 class User(AbstractUser):
@@ -31,5 +34,19 @@ class User(AbstractUser):
 
 
 class Profile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="profile",
+    )
     bio = models.TextField(blank=True, null=True)
+    avatar = models.ImageField(upload_to="avatars/", blank=True, null=True)
+
+    def __str__(self) -> str:
+        return f"Profile of {getattr(self.user, 'email', self.user.pk)}"
+
+
+@receiver(post_save, sender=settings.AUTH_USER_MODEL)
+def create_profile_for_user(sender, instance, created, **kwargs):
+    if created:
+        Profile.objects.get_or_create(user=instance)

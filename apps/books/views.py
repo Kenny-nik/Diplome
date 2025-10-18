@@ -19,16 +19,16 @@ from .models import Book, Loan
 
 # ---------- ГЛАВНАЯ: рекомендации ----------
 class HomePageView(TemplateView):
-    """
-    Главная страница: 20 рекомендаций (обложка, название, автор, рейтинг).
-    Берём книги по рейтингу и дате добавления.
-    """
     template_name = "home.html"
 
     def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx["recommended_books"] = Book.objects.all().order_by("-rating", "-created_at")[:20]
-        return ctx
+        context = super().get_context_data(**kwargs)
+        # Топ-5 по рейтингу, среди доступных. При равном рейтинге — новее выше.
+        context["recommended_books"] = (
+            Book.objects.filter(is_available=True)
+            .order_by("-rating", "-created_at")[:5]
+        )
+        return context
 
 
 # ---------- КАТАЛОГ: фильтрация по жанру, названию и автору ----------

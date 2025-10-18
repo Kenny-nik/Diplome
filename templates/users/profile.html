@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Профиль{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h2 class="mb-3">Профиль</h2>
+
+  <div class="row g-4">
+    <!-- Аватар -->
+    <div class="col-12 col-md-4">
+      <div class="card h-100">
+        <div class="card-header fw-semibold">Аватар</div>
+        <div class="card-body">
+          <div class="text-center mb-3">
+            {% if user.profile and user.profile.avatar %}
+              <img src="{{ user.profile.avatar.url }}" alt="avatar"
+                   class="rounded-circle" style="width:140px;height:140px;object-fit:cover;">
+            {% else %}
+              <img src="{% static 'img/avatar-placeholder.png' %}" alt="avatar"
+                   class="rounded-circle" style="width:140px;height:140px;object-fit:cover;">
+            {% endif %}
+          </div>
+
+          <form method="post" enctype="multipart/form-data" class="d-grid gap-2">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="avatar">
+            <div class="mb-2">
+              <label class="form-label">Загрузить новый</label>
+              {{ avatar_form.avatar }}
+            </div>
+            <div class="form-text">Поддерживаются JPG/PNG, до ~5MB.</div>
+            <button class="btn btn-primary mt-2" type="submit">Обновить аватар</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Личные данные + пароль -->
+    <div class="col-12 col-md-8">
+      <div class="card mb-4">
+        <div class="card-header fw-semibold">Личные данные</div>
+        <div class="card-body">
+          <form method="post" class="row g-3">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="profile">
+            <div class="col-md-6">
+              <label class="form-label">Имя</label>
+              {{ profile_form.first_name }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Фамилия</label>
+              {{ profile_form.last_name }}
+            </div>
+            <div class="col-12">
+              <label class="form-label">E-mail</label>
+              {{ profile_form.email }}
+              <div class="form-text">E-mail берётся из учётной записи.</div>
+            </div>
+            <div class="col-12">
+              <button class="btn btn-success" type="submit">Сохранить</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header fw-semibold">Смена пароля</div>
+        <div class="card-body">
+          <form method="post" class="row g-3">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="password">
+            <div class="col-12 col-md-6">
+              <label class="form-label">Текущий пароль</label>
+              {{ password_form.old_password }}
+            </div>
+            <div class="col-12 col-md-6"></div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Новый пароль</label>
+              {{ password_form.new_password1 }}
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Подтверждение</label>
+              {{ password_form.new_password2 }}
+            </div>
+            <div class="col-12">
+              <button class="btn btn-warning" type="submit">Изменить пароль</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

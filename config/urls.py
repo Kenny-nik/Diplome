@@ -1,9 +1,8 @@
-# config/urls.py
 from django.contrib import admin
+from django.conf import settings
 from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
-
-# страницы сайта (важно: импортируем BookListView, а не BooksCatalogView)
+from django.conf.urls.static import static
 from apps.books.views import HomePageView, BookListView
 
 urlpatterns = [
@@ -31,4 +30,8 @@ urlpatterns = [
     # Главная и каталог
     path("", HomePageView.as_view(), name="home"),
     path("catalog/", BookListView.as_view(), name="book_list"),
+
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
