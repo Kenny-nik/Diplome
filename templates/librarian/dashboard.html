@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Панель библиотекаря{% endblock %}
+{% block content %}
+<h1 class="mb-4">Панель библиотекаря</h1>
+
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="fw-bold text-muted">Пользователи</div>
+        <div class="display-6">{{ total_users }}</div>
+        <div class="text-success">Активные: {{ active_users }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="fw-bold text-muted">Выдачи</div>
+        <div class="display-6">{{ total_loans }}</div>
+        <div class="text-primary">Активные: {{ active_loans }}</div>
+        <div class="text-danger">Просрочены: {{ overdue_loans }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="d-flex gap-2 mb-3">
+  <a class="btn btn-outline-primary" href="{% url 'librarian:users' %}">Пользователи</a>
+  <a class="btn btn-outline-primary" href="{% url 'librarian:loans' %}">Выдачи книг</a>
+</div>
+
+<h5 class="mt-4 mb-2">Последние выдачи</h5>
+<div class="table-responsive">
+  <table class="table table-sm align-middle">
+    <thead>
+      <tr>
+        <th>Дата</th>
+        <th>Книга</th>
+        <th>Пользователь</th>
+        <th>Срок до</th>
+        <th>Статус</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for l in recent_loans %}
+        <tr>
+          <td>{{ l.loan_date|date:"d.m.Y" }}</td>
+          <td><a href="{% url 'books:book_detail' l.book.pk %}">{{ l.book.title }}</a></td>
+          <td>{{ l.user.email|default:l.user.username }}</td>
+          <td>{{ l.due_date|date:"d.m.Y" }}</td>
+          <td>
+            {% if l.return_date %}
+              <span class="badge bg-success">Возвращена</span>
+            {% elif l.due_date < today %}
+              <span class="badge bg-danger">Просрочена</span>
+            {% else %}
+              <span class="badge bg-primary">Активна</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="text-muted">Нет данных</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

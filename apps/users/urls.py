@@ -1,10 +1,26 @@
+# apps/users/urls.py
 from django.urls import path
+from django.contrib.auth import views as auth_views
+
 from . import views
-from .views import ProfileView
+
+app_name = "users"
 
 urlpatterns = [
-    path('register/', views.RegisterView.as_view(), name='register'),
-    path('complete-profile/', views.CompleteProfileView.as_view(), name='complete_profile'),
-    path('profile/', views.ProfileView.as_view(), name='profile'),
-    path('users/<int:pk>/', ProfileView.as_view(), name='profile'),
+    # Вход
+    path(
+        "login/",
+        auth_views.LoginView.as_view(template_name="registration/login.html"),
+        name="login",
+    ),
+    # Выход
+    path(
+        "logout/",
+        auth_views.LogoutView.as_view(next_page="home"),
+        name="logout",
+    ),
+    # Регистрация (твоя вьюха)
+    path("register/", views.RegisterView.as_view(), name="register"),
+    # Профиль (твоя вьюха)
+    path("profile/", views.ProfileView.as_view(), name="profile"),
 ]

@@ -8,19 +8,26 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from apps.books.views import HomePageView
 
 urlpatterns = [
-    # Admin
+    # Админка
     path("admin/", admin.site.urls),
 
-    # Auth (стандартные шаблоны Django)
+    # Встроенные auth-url'ы Django (оставлено как было у вас)
     path("login/", include("django.contrib.auth.urls")),
 
-    # Web-приложения
+    # Веб-приложения
     path(
         "books/",
         include(("apps.books.web_urls", "books"), namespace="books"),
     ),
-    path("loans/", include("apps.loans.urls")),
-    path("users/", include("apps.users.urls")),
+    path(
+        "users/",
+        include(("apps.users.urls", "users"), namespace="users"),
+    ),
+    path(
+        "librarian/",
+        include(("apps.librarian.urls", "librarian"), namespace="librarian"),
+    ),
+    path("loans/", include(("apps.loans.urls", "loans"))),  # без namespace, если не нужен
 
     # API
     path("api/v1/books/", include("apps.books.api_urls")),
@@ -33,7 +40,7 @@ urlpatterns = [
     # Главная
     path("", HomePageView.as_view(), name="home"),
 
-    # Удобный алиас на каталог — редирект на books:book_list
+    # Удобный алиас на каталог
     path("catalog/", RedirectView.as_view(pattern_name="books:book_list", permanent=False), name="catalog"),
 ]
 

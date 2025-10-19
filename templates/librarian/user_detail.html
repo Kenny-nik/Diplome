@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Пользователь {{ u.username }} — библиотекарь{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Пользователь: {{ u.username }}</h2>
+    <a class="btn btn-outline-secondary" href="{% url 'librarian:dashboard' %}">&larr; Панель библиотекаря</a>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header fw-semibold">Профиль</div>
+        <div class="card-body">
+          <div class="mb-2"><span class="text-muted">Email:</span> {{ u.email }}</div>
+          <div class="mb-2"><span class="text-muted">Имя:</span> {{ u.first_name }} {{ u.last_name }}</div>
+          <div class="mb-2"><span class="text-muted">Дата регистрации:</span> {{ u.date_joined|date:"d.m.Y H:i" }}</div>
+          <div class="mb-2"><span class="text-muted">Последний вход:</span> {{ u.last_login|date:"d.m.Y H:i" }}</div>
+          <div class="mb-2"><span class="text-muted">Статус:</span>
+            {% if u.is_active %}<span class="badge bg-success">Активен</span>{% else %}<span class="badge bg-secondary">Заблокирован</span>{% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header fw-semibold">Последние займы (20)</div>
+        <div class="card-body p-0">
+          <table class="table mb-0 align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Книга</th>
+                <th>Выдана</th>
+                <th>До</th>
+                <th>Возврат</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for l in recent_loans %}
+                <tr>
+                  <td>
+                    <div class="fw-semibold">{{ l.book.title }}</div>
+                    <div class="text-muted small">{{ l.book.author }}</div>
+                  </td>
+                  <td class="small">{{ l.loan_date|date:"d.m.Y" }}</td>
+                  <td class="small">{{ l.due_date|date:"d.m.Y" }}</td>
+                  <td class="small">
+                    {% if l.return_date %}
+                      <span class="badge bg-success">Возврат: {{ l.return_date|date:"d.m.Y" }}</span>
+                    {% elif l.due_date < today %}
+                      <span class="badge bg-danger">Просрочена</span>
+                    {% else %}
+                      <span class="badge bg-secondary">Активна</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="4" class="text-center text-muted p-3">Займов нет</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

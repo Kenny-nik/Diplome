@@ -4,26 +4,25 @@ from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# --- Инициализация django-environ ---
+# --- django-environ ---
 env = environ.Env(
     DEBUG=(bool, False),
-    SECRET_KEY=(str, 'unsafe-secret-key'),
-    DB_ENGINE=(str, 'django.db.backends.postgresql'),
-    DB_NAME=(str, 'diplome'),
-    DB_USER=(str, 'postgres'),
-    DB_PASSWORD=(str, '1234567890'),
-    DB_HOST=(str, 'db'),
+    SECRET_KEY=(str, "unsafe-secret-key"),
+    DB_ENGINE=(str, "django.db.backends.postgresql"),
+    DB_NAME=(str, "diplome"),
+    DB_USER=(str, "postgres"),
+    DB_PASSWORD=(str, "1234567890"),
+    DB_HOST=(str, "db"),
     DB_PORT=(int, 5432),
-    JWT_SECRET_KEY=(str, ''),
+    JWT_SECRET_KEY=(str, ""),
 )
 
-# Загружаем .env из BASE_DIR
+# Загружаем .env из корня проекта
 environ.Env.read_env(BASE_DIR / ".env")
 
-# --- Основные настройки ---
+# --- Базовые настройки ---
 SECRET_KEY = env("SECRET_KEY")
 DEBUG = env("DEBUG")
-
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
 
 # --- База данных ---
@@ -38,7 +37,7 @@ DATABASES = {
     }
 }
 
-# --- JWT настройки ---
+# --- JWT ---
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
@@ -49,7 +48,7 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
-# --- Установленные приложения ---
+# --- Приложения ---
 INSTALLED_APPS = [
     # Django
     "django.contrib.admin",
@@ -66,25 +65,26 @@ INSTALLED_APPS = [
     "django_filters",
     "drf_spectacular",
 
-    # Local apps
+    # Local apps (каждое приложение ровно один раз!)
     "apps.users",
     "apps.books",
     "apps.loans",
+    "apps.librarian",
 ]
 
 # --- Middleware ---
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "corsheaders.middleware.CorsMiddleware",   # должно быть выше CommonMiddleware
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
 ]
 
-# --- Django REST Framework ---
+# --- DRF ---
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
@@ -102,21 +102,23 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
-# --- drf-spectacular настройки ---
+# --- drf-spectacular ---
 SPECTACULAR_SETTINGS = {
     "TITLE": "Diplome API",
     "DESCRIPTION": "Auto-generated API documentation",
     "VERSION": "1.0.0",
 }
 
-# --- Авторизация ---
+# --- Пользовательская модель ---
 AUTH_USER_MODEL = "users.User"
+
+# --- Login / Logout ---
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 LOGIN_URL = "/login/"
 
 # --- Сессии ---
-SESSION_COOKIE_AGE = 1209600  # 2 недели
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 14  # 2 недели
 SESSION_SAVE_EVERY_REQUEST = True
 
 # --- Шаблоны ---
@@ -144,6 +146,10 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+# --- Прочее ---
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
 ROOT_URLCONF = "config.urls"
+
+# (опционально, если требуется явная TZ)
+USE_TZ = True
+TIME_ZONE = "UTC"
