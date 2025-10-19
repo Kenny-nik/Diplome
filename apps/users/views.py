@@ -15,31 +15,20 @@ from .models import Profile
 
 
 class RegisterView(View):
-    """
-    Регистрация нового пользователя.
-    - Если пользователь уже авторизован — отправляем в профиль.
-    - При успешной регистрации логиним и ведём на "дозаполнение" профиля.
-    """
     template_name = "registration/register.html"
 
     def get(self, request):
-        if request.user.is_authenticated:
-            return redirect("profile")
         form = CustomUserCreationForm()
         return render(request, self.template_name, {"form": form})
 
     def post(self, request):
-        if request.user.is_authenticated:
-            return redirect("profile")
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
             login(request, user)
-            messages.success(request, "Регистрация прошла успешно!")
-            # Если у тебя есть маршрут на «дозаполнение» — оставляем его.
-            # Иначе можно заменить на: return redirect("profile")
-            return redirect("complete_profile")
-        # Ошибки валидации вернём на ту же страницу
+            messages.success(request, "Вы успешно зарегистрированы!")
+            return redirect("profile")
+        messages.error(request, "Пожалуйста, исправьте ошибки в форме.")
         return render(request, self.template_name, {"form": form})
 
 

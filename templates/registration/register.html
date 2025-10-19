@@ -1,75 +1,66 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+{% load static %}
 
-{% block title %}Регистрация в системе{% endblock %}
+{% block title %}Регистрация{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card shadow-sm">
-            <div class="card-header bg-light">
-                <h4 class="card-title mb-0 text-center">
-                    <i class="fas fa-user-plus"></i> Регистрация
-                </h4>
-            </div>
-            <div class="card-body">
-                <form method="post" id="registrationForm" novalidate>
-                    {% csrf_token %}
-                    {% if form.errors %}
-                    <div class="alert alert-danger">
-                        Пожалуйста, исправьте ошибки в форме.
-                    </div>
-                    {% endif %}
-
-                    <div class="mb-3">
-                        <label for="id_username" class="form-label">Email</label>
-                        <input type="email" name="username" class="form-control" id="id_username" placeholder="Введите ваш email" required>
-                        <div class="form-text">Введите корректный email.</div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="id_password1" class="form-label">Пароль</label>
-                        <input type="password" name="password1" class="form-control" id="id_password1" placeholder="Введите пароль" required>
-                        <div class="form-text">Пароль должен быть не менее 8 символов.</div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="id_password2" class="form-label">Подтверждение пароля</label>
-                        <input type="password" name="password2" class="form-control" id="id_password2" placeholder="Повторите пароль" required>
-                        <div class="form-text" id="passwordMatchText"></div>
-                    </div>
-
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-user-plus"></i> Зарегистрироваться
-                        </button>
-                    </div>
-                </form>
-
-                <div class="mt-3 text-center">
-                    <p>Уже есть аккаунт? <a href="{% url 'login' %}">Войти</a></p>
-                </div>
-            </div>
-        </div>
+<div class="container" style="max-width: 720px;">
+  <div class="card shadow-sm mt-4">
+    <div class="card-header d-flex align-items-center gap-2">
+      <i class="fas fa-user-plus"></i>
+      <strong>Регистрация</strong>
     </div>
+    <div class="card-body">
+
+      {% if messages %}
+        {% for m in messages %}
+          <div class="alert alert-{{ m.tags }}">{{ m }}</div>
+        {% endfor %}
+      {% endif %}
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger mb-3">
+          {% for e in form.non_field_errors %}{{ e }}<br>{% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        <div class="mb-3">
+          <label class="form-label">Email</label>
+          {{ form.email }}
+          {% for e in form.email.errors %}
+            <div class="invalid-feedback d-block">{{ e }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Пароль</label>
+          {{ form.password1 }}
+          {% for e in form.password1.errors %}
+            <div class="invalid-feedback d-block">{{ e }}</div>
+          {% endfor %}
+          <div class="form-text">Пароль должен быть не короче 8 символов.</div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Подтверждение пароля</label>
+          {{ form.password2 }}
+          {% for e in form.password2.errors %}
+            <div class="invalid-feedback d-block">{{ e }}</div>
+          {% endfor %}
+        </div>
+
+        <button class="btn btn-primary w-100" type="submit">
+          <i class="fas fa-user-plus me-1"></i> Зарегистрироваться
+        </button>
+      </form>
+
+      <div class="text-center mt-3">
+        Уже есть аккаунт? <a href="{% url 'login' %}">Войти</a>
+      </div>
+    </div>
+  </div>
 </div>
-
-<script>
-document.getElementById('registrationForm').addEventListener('input', function() {
-    const pass1 = document.getElementById('id_password1').value;
-    const pass2 = document.getElementById('id_password2').value;
-    const matchText = document.getElementById('passwordMatchText');
-
-    if (pass2.length > 0) {
-        if (pass1 === pass2) {
-            matchText.textContent = "Пароли совпадают ✅";
-            matchText.style.color = "green";
-        } else {
-            matchText.textContent = "Пароли не совпадают ❌";
-            matchText.style.color = "red";
-        }
-    } else {
-        matchText.textContent = "";
-    }
-});
-</script>
 {% endblock %}
