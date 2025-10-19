@@ -45,7 +45,7 @@ class Loan(models.Model):
         return f"{self.user} — {self.book} ({self.status})"
 
     def save(self, *args, **kwargs):
-        # loan_date всегда существует
+
         if self.loan_date is None:
             self.loan_date = timezone.now()
 

@@ -12,7 +12,6 @@ class User(AbstractUser):
         ('ADMIN', 'Administrator'),
     ]
 
-    # поля, которых не было в стандартном пользователе
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='READER')
     phone_number = models.CharField(max_length=15, blank=True)

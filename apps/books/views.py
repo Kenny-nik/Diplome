@@ -16,6 +16,7 @@ from django.utils import timezone
 
 from .models import Book
 from apps.loans.models import Loan
+from django.db.models import Q
 
 
 # ---------- ГЛАВНАЯ: рекомендации ----------
@@ -38,25 +39,50 @@ class BookListView(ListView):
     context_object_name = "books"
     paginate_by = 24
 
+    GENRE_ALIASES = {
+        "sci_fi": {"sci_fi", "sci-fi", "science_fiction", "научная фантастика"},
+        "romance": {"romance", "роман"},
+        "history": {"history", "история"},
+        "cs": {"cs", "programming", "программирование", "python", "айти"},
+        "science": {"science", "наука"},
+        "detective": {"detective", "детектив", "mystery"},
+        "poetry": {"poetry", "поэзия"},
+        "other": {"other", "другое", ""},
+    }
+
+    def _canonize_genre(self, raw: str) -> str:
+        """Вернуть канонический код жанра по входному значению (код/название/старый вариант)."""
+        g = (raw or "").strip().lower()
+        if not g:
+            return ""
+        for code, variants in self.GENRE_ALIASES.items():
+            if g in variants:
+                return code
+        for code, name in getattr(Book, "GENRE_CHOICES", []):
+            if g == (name or "").lower():
+                return code
+        return g
+
     def get_queryset(self):
         qs = Book.objects.all()
 
         q = (self.request.GET.get("q") or self.request.GET.get("search") or "").strip()
         author = (self.request.GET.get("author") or "").strip()
-        genre = (self.request.GET.get("genre") or "").strip()
+        genre_raw = (self.request.GET.get("genre") or "").strip()
+        genre_code = self._canonize_genre(genre_raw)
 
         if q:
             qs = qs.filter(title__icontains=q)
         if author:
             qs = qs.filter(author__icontains=author)
-        if genre:
-            qs = qs.filter(genre=genre)
+        if genre_code:
+            qs = qs.filter(Q(genre__iexact=genre_code) | Q(genre__iexact=genre_raw))
 
         return qs.order_by("title")
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["genres"] = Book.BOOK_GENRES
+        ctx["genres"] = getattr(Book, "GENRE_CHOICES", [])
         ctx["current"] = {
             "q": self.request.GET.get("q", self.request.GET.get("search", "")),
             "author": self.request.GET.get("author", ""),
@@ -104,7 +130,8 @@ class BookCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     success_url = reverse_lazy("books:book_list")
 
     def test_func(self):
-        return getattr(self.request.user, "is_librarian", False)
+        u = self.request.user
+        return getattr(u, "is_librarian", False) or u.is_staff
 
     def form_valid(self, form):
         messages.success(self.request, "Книга успешно добавлена!")
@@ -129,7 +156,8 @@ class BookUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     ]
 
     def test_func(self):
-        return getattr(self.request.user, "is_librarian", False)
+        u = self.request.user
+        return getattr(u, "is_librarian", False) or u.is_staff
 
     def form_valid(self, form):
         messages.success(self.request, "Книга успешно обновлена!")
@@ -145,7 +173,9 @@ class BookDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     success_url = reverse_lazy("books:book_list")
 
     def test_func(self):
-        return getattr(self.request.user, "is_librarian", False)
+        u = self.request.user
+        return getattr(u, "is_librarian", False) or u.is_staff
+
 
     def delete(self, request, *args, **kwargs):
         messages.success(request, "Книга успешно удалена!")
@@ -161,7 +191,6 @@ class BookBorrowView(LoginRequiredMixin, View):
             messages.error(request, "Извините, все экземпляры уже выданы.")
             return redirect("books:book_detail", pk=pk)
 
-        # запрет на повторную выдачу той же книги
         if Loan.objects.filter(user=request.user, book=book, return_date__isnull=True).exists():
             messages.warning(request, "Вы уже взяли эту книгу.")
             return redirect("books:book_detail", pk=pk)
@@ -169,7 +198,6 @@ class BookBorrowView(LoginRequiredMixin, View):
         loan = Loan.objects.create(
             book=book,
             user=request.user,
-            # Берём «сегодня» независимо от USE_TZ
             due_date=timezone.now().date() + timedelta(days=14),
         )
 

@@ -5,7 +5,7 @@ from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
 from .models import Profile
 
 User = get_user_model()
-USERNAME_FIELD = User.USERNAME_FIELD  # 'username' или 'email'
+USERNAME_FIELD = User.USERNAME_FIELD
 
 
 class CustomUserCreationForm(UserCreationForm):
@@ -21,7 +21,6 @@ class CustomUserCreationForm(UserCreationForm):
 
 
 class ProfileForm(forms.ModelForm):
-    # email отображаем, но не редактируем здесь
     email = forms.EmailField(disabled=True, required=False, label="E-mail")
 
     class Meta:

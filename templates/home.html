@@ -44,10 +44,11 @@
           <div class="card h-100 book-card shadow-sm position-relative">
             <div class="book-thumb">
               <div class="hit-badge">ХИТ</div>
-              {% cover_for_book book as cover_rel %}
-              <img src="{% static cover_rel %}" alt="{{ book.title }}">
-              {% if book.cover_url %}
-                <img src="{{ book.cover_url }}" alt="{{ book.title }}" onerror="this.style.display='none'">
+              {% if book.preferred_cover %}
+                <img src="{{ book.preferred_cover }}" alt="{{ book.title }}">
+              {% else %}
+                {% cover_for_book book as cover_rel %}
+                <img src="{% static cover_rel %}" alt="{{ book.title }}">
               {% endif %}
             </div>
 

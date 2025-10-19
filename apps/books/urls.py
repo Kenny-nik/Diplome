@@ -1,4 +1,3 @@
-# apps/books/urls.py
 from django.urls import path, include
 from .views import (
     BookListView,
@@ -12,7 +11,6 @@ from .views import (
 )
 
 urlpatterns = [
-    # Web
     path("", BookListView.as_view(), name="book_list"),
     path("<int:pk>/", BookDetailView.as_view(), name="book_detail"),
     path("create/", BookCreateView.as_view(), name="book_create"),
@@ -22,6 +20,5 @@ urlpatterns = [
     path("<int:pk>/remove/", BookReturnView.as_view(), name="book_remove"),
     path("my-books/", MyBooksView.as_view(), name="my_loans"),
 
-    # API (если используешь)
     path("api/", include("apps.books.api_urls")),
 ]

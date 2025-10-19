@@ -23,9 +23,10 @@
   .book-card{ transition: transform .15s ease; }
   .book-card:hover{ transform: translateY(-3px); }
 
-  /* чтобы stretched-link не перекрывал кнопки */
-  .card.position-relative .stretched-link{ z-index:1; }
-  .card.position-relative .btn{ position:relative; z-index:2; }
+  /* стек из базовой и «удалённой» обложки */
+  .cover-stack { position:relative; width:100%; height:100%; }
+  .cover-stack img.base { z-index: 1; }
+  .cover-stack img.remote { z-index: 2; }
 </style>
 
 <div class="container">
@@ -39,25 +40,37 @@
       {% for loan in loans %}
         {% with book=loan.book %}
         <div class="col">
-          <div class="card h-100 book-card position-relative">
+          <div class="card h-100 book-card">
             <div class="book-thumb">
-              {% cover_for_book book as cover_rel %}
-              <img src="{% static cover_rel %}" alt="{{ book.title }}">
-              {% if book.cover_url %}
-                <img src="{{ book.cover_url }}" alt="{{ book.title }}"
-                     onerror="this.style.display='none'">
-              {% endif %}
+              <div class="cover-stack">
+                {% cover_for_book book as cover_rel %}
+                {% with v=book.updated_at|date:"U" %}
+                  <img class="base" src="{% static cover_rel %}?v={{ v }}" alt="{{ book.title }}">
+
+                  {% if book.cover_image %}
+                    <img class="remote"
+                         src="{{ book.cover_image.url }}?v={{ v }}"
+                         alt="{{ book.title }}"
+                         onerror="this.style.display='none'">
+                  {% elif book.cover_url %}
+                    <img class="remote"
+                         src="{{ book.cover_url }}?v={{ v }}"
+                         alt="{{ book.title }}"
+                         onerror="this.style.display='none'">
+                  {% endif %}
+                {% endwith %}
+              </div>
             </div>
 
             <div class="card-body p-2 d-flex flex-column">
-              <a href="{% url 'books:book_detail' book.pk %}" class="stretched-link"></a>
-
               <div class="fw-semibold text-truncate" title="{{ book.title }}">{{ book.title }}</div>
               <div class="small text-muted text-truncate" title="{{ book.author }}">{{ book.author }}</div>
 
               <div class="mt-1 mb-2">
                 <span class="badge bg-warning text-dark">★ {{ book.rating|floatformat:1 }}</span>
-                <span class="badge bg-secondary ms-1">До: {{ loan.due_date|date:"d.m.Y" }}</span>
+                {% if loan.due_date %}
+                  <span class="badge bg-secondary ms-1">До: {{ loan.due_date|date:"d.m.Y" }}</span>
+                {% endif %}
               </div>
 
               <form method="post" action="{% url 'books:book_remove' book.pk %}" class="mt-auto">
@@ -72,7 +85,7 @@
     </div>
   {% else %}
     <div class="alert alert-info">
-      Список пуст. Перейдите в <a href="{% url 'books:book_list' %}">каталог</a> и добавьте книги.
+      <i class="fas fa-info-circle me-1"></i> У вас пока нет добавленных книг.
     </div>
   {% endif %}
 </div>

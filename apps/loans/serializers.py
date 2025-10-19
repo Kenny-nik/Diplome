@@ -36,7 +36,7 @@ class LoanCreateSerializer(serializers.ModelSerializer):
         if not book.is_available:
             raise serializers.ValidationError("Книга недоступна для выдачи")
 
-        # Проверка, не превышает ли пользователь лимит займов (например, 5 книг)
+        # Проверка, не превышает ли пользователь лимит займов
         active_loans = Loan.objects.filter(user=user, status='ACTIVE').count()
         if active_loans >= 5:
             raise serializers.ValidationError("Превышен лимит активных займов (максимум 5)")
@@ -46,7 +46,6 @@ class LoanCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         loan = Loan.objects.create(**validated_data)
 
-        # Обновляем доступность книги
         book = loan.book
         book.available_copies -= 1
         if book.available_copies == 0:
