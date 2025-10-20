@@ -1,9 +1,14 @@
 from django.contrib import messages
 from django.contrib.auth import login, update_session_auth_hash
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import HttpResponseNotAllowed
 from django.shortcuts import redirect, render
 from django.views.generic import TemplateView, View
+from django.utils import timezone
+from datetime import timedelta
+from django.urls import reverse
 
 from .forms import (
     AvatarForm,
@@ -116,3 +121,38 @@ class ProfileView(LoginRequiredMixin, TemplateView):
             return render(request, self.template_name, ctx)
 
         return redirect("profile")
+
+@login_required
+def fake_checkout(request):
+    """
+    Заглушка оплаты. Никуда карты не отправляются.
+    Просто активируем подписку на 30 дней и возвращаемся назад.
+    """
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    profile = request.user.profile
+    profile.subscription_until = timezone.localdate() + timedelta(days=30)
+    profile.save(update_fields=["subscription_until"])
+
+    messages.success(
+        request,
+        f"Подписка активирована до {profile.subscription_until.strftime('%d.%m.%Y')}. "
+        f"Это тестовая оплата (без реального списания)."
+    )
+
+    next_url = request.POST.get("next") or reverse("home")
+    return redirect(next_url)
+
+@login_required
+def subscribe_placeholder(request):
+    """
+    Демонстрационная заглушка оформления подписки.
+    Реальной оплаты пока нет: показываем сообщение и отправляем в профиль.
+    """
+    messages.info(
+        request,
+        "Оплата подписки пока не подключена. Это демонстрационная кнопка. "
+        "Для теста можете выдать подписку в админке (поле «Подписка до»)."
+    )
+    return redirect("users:profile")

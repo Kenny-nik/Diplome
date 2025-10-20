@@ -20,9 +20,11 @@ class ActiveLoanInline(admin.TabularInline):
 class BookAdmin(admin.ModelAdmin):
     list_display = (
         "title", "author", "genre", "rating",
-        "total_copies", "available_copies", "is_available", "cover_preview",
+        "total_copies", "available_copies", "is_available",
+        "is_premium",  # ← пометка «по подписке»
+        "cover_preview",
     )
-    list_filter = ("genre", "is_available")
+    list_filter = ("genre", "is_available", "is_premium")
     search_fields = ("title", "author", "isbn")
     readonly_fields = ("created_at", "updated_at", "slug", "cover_preview_large")
     inlines = (ActiveLoanInline,)
@@ -33,20 +35,20 @@ class BookAdmin(admin.ModelAdmin):
         ("Обложка", {
             "fields": ("cover_image", "cover_url", "cover_preview_large"),
         }),
-        ("Статистика", {
-            "fields": ("rating", "total_copies", "available_copies", "is_available", "created_at", "updated_at"),
+        ("Статистика и доступ", {
+            "fields": ("rating", "total_copies", "available_copies", "is_available", "is_premium", "created_at", "updated_at"),
         }),
     )
 
     def cover_preview(self, obj):
-        url = obj.preferred_cover
+        url = getattr(obj, "preferred_cover", None)
         if url:
             return format_html('<img src="{}" style="height:48px;border-radius:4px;" />', url)
         return "—"
     cover_preview.short_description = "Обложка"
 
     def cover_preview_large(self, obj):
-        url = obj.preferred_cover
+        url = getattr(obj, "preferred_cover", None)
         if url:
             return format_html('<img src="{}" style="height:160px;border-radius:6px;box-shadow:0 2px 10px rgba(0,0,0,.1);" />', url)
         return "—"

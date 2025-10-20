@@ -23,16 +23,72 @@
              color:#1f1f1f;font-weight:800;font-size:.8rem;letter-spacing:.6px;padding:.28rem .6rem;border-radius:.35rem;
              box-shadow:0 3px 10px rgba(0,0,0,.18);text-transform:uppercase;z-index:3}
 
+  .premium-badge{position:absolute;top:12px;right:12px;background:linear-gradient(135deg,#ffd24d,#ffb300,#ff9800);
+                 color:#1f1f1f;font-weight:800;font-size:.7rem;letter-spacing:.5px;padding:.25rem .5rem;border-radius:.35rem;
+                 box-shadow:0 3px 10px rgba(0,0,0,.18);text-transform:uppercase;z-index:3}
+
   /* Stretched link не должен перекрывать кнопки */
   .card.position-relative .stretched-link{z-index:1}
   .card.position-relative .btn{position:relative;z-index:2}
 </style>
 
 <div class="container">
-  <div class="d-flex justify-content-between align-items-center">
+
+  {# ---- Плашка подписки (для гостей и пользователей без активной подписки) ---- #}
+  {% if not user.is_authenticated or not user_has_subscription %}
+    <div class="alert alert-warning d-flex align-items-center justify-content-between mt-2" role="alert">
+      <div>
+        <div class="fw-semibold">Оформите подписку на библиотеку — 199₽/мес</div>
+        <div class="small text-muted">Поддержите проект и получите доступ к эксклюзивным книгам.</div>
+      </div>
+      <div class="d-flex gap-2">
+        <!-- Модалка-оплата (демо) -->
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#subscribeModal">Оформить</button>
+        <a class="btn btn-outline-secondary" href="{% url 'users:profile' %}">Подробнее</a>
+      </div>
+    </div>
+
+    <!-- Modal: фиктивная "оплата" -->
+    <div class="modal fade" id="subscribeModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Оплата подписки — 199₽/мес</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">Номер карты</label>
+              <input class="form-control" placeholder="0000 0000 0000 0000">
+            </div>
+            <div class="row g-2">
+              <div class="col">
+                <label class="form-label">MM/YY</label>
+                <input class="form-control" placeholder="12/34">
+              </div>
+              <div class="col">
+                <label class="form-label">CVC</label>
+                <input class="form-control" placeholder="123">
+              </div>
+            </div>
+            <div class="form-text mt-2">
+              Демонстрация: кнопка «Оплатить» пока не совершает реальных платежей.
+            </div>
+          </div>
+          <div class="modal-footer">
+            <a class="btn btn-primary" href="{% url 'users:subscribe' %}">Оплатить</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="d-flex justify-content-between align-items-center mt-3">
     <div class="hero-head">
       <h2 class="hero-title">Хиты недели</h2>
-      <p class="hero-sub d-none d-sm-block">Топ-5 книг по рейтингу</p>
+      <p class="hero-sub d-none d-sm-block">
+        Топ-5 книг по рейтингу{% if not user_has_subscription %} (премиум-книги в приоритете){% endif %}
+      </p>
     </div>
     <a href="{% url 'books:book_list' %}" class="btn btn-outline-primary">Каталог</a>
   </div>
@@ -44,6 +100,9 @@
           <div class="card h-100 book-card shadow-sm position-relative">
             <div class="book-thumb">
               <div class="hit-badge">ХИТ</div>
+              {% if book.is_premium %}
+                <div class="premium-badge">Премиум</div>
+              {% endif %}
               {% if book.preferred_cover %}
                 <img src="{{ book.preferred_cover }}" alt="{{ book.title }}">
               {% else %}
@@ -64,13 +123,19 @@
               </div>
 
               {% if user.is_authenticated and not user.is_librarian %}
-                <form method="post" action="{% url 'books:book_borrow' book.pk %}" class="mt-auto">
-                  {% csrf_token %}
-                  <button class="btn btn-primary w-100"
-                          {% if not book.is_available or book.available_copies|default:0 < 1 %}disabled{% endif %}>
-                    Добавить
+                {% if book.is_premium and not user_has_subscription %}
+                  <button class="btn btn-outline-secondary w-100" disabled title="Только по подписке">
+                    Доступно по подписке
                   </button>
-                </form>
+                {% else %}
+                  <form method="post" action="{% url 'books:book_borrow' book.pk %}" class="mt-auto">
+                    {% csrf_token %}
+                    <button class="btn btn-primary w-100"
+                            {% if not book.is_available or book.available_copies|default:0 < 1 %}disabled{% endif %}>
+                      Добавить
+                    </button>
+                  </form>
+                {% endif %}
               {% endif %}
             </div>
           </div>

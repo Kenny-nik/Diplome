@@ -1,4 +1,3 @@
-# apps/users/urls.py
 from django.urls import path
 from django.contrib.auth import views as auth_views
 
@@ -23,4 +22,6 @@ urlpatterns = [
     path("register/", views.RegisterView.as_view(), name="register"),
     # Профиль (твоя вьюха)
     path("profile/", views.ProfileView.as_view(), name="profile"),
+    path("subscribe/fake-checkout/", views.fake_checkout, name="fake_checkout"),
+    path("subscribe/", views.subscribe_placeholder, name="subscribe"),
 ]

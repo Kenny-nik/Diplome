@@ -3,6 +3,8 @@ from django.conf import settings
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.utils import timezone
+
 
 
 class User(AbstractUser):
@@ -45,7 +47,19 @@ class Profile(models.Model):
         return f"Profile of {getattr(self.user, 'email', self.user.pk)}"
 
 
+subscription_until = models.DateField(
+    null=True, blank=True,
+    verbose_name="Подписка действует до"
+)
+
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_profile_for_user(sender, instance, created, **kwargs):
     if created:
         Profile.objects.get_or_create(user=instance)
+
+@property
+def has_active_subscription(self) -> bool:
+    """У пользователя активная подписка?"""
+    if not self.subscription_until:
+        return False
+    return self.subscription_until >= timezone.localdate()

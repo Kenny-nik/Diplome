@@ -1,20 +1,23 @@
 from django.contrib import admin
-from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.utils.translation import gettext_lazy as _
+from django.utils import timezone
 
 from .models import Profile
 
 User = get_user_model()
 
 
-# ---------------------------
-# Профиль
-# ---------------------------
+# ---- Профили ----
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
-    list_display = ("user", "avatar_preview")
+    """
+    Минимальная и безопасная админка профиля:
+    показываем пользователя и превью аватара + статус подписки.
+    """
+    list_display = ("user", "avatar_preview", "subscription_until_display")
     search_fields = ("user__username", "user__email")
     readonly_fields = ("avatar_preview",)
 
@@ -22,6 +25,7 @@ class ProfileAdmin(admin.ModelAdmin):
         if getattr(obj, "avatar", None):
             try:
                 url = obj.avatar.url
+                # format_html доступен через admin.utils
                 return admin.utils.format_html(
                     '<img src="{}" style="height:80px;border-radius:8px;" />', url
                 )
@@ -31,10 +35,43 @@ class ProfileAdmin(admin.ModelAdmin):
 
     avatar_preview.short_description = "Аватар"
 
+    def _has_active(self, obj):
+        """
+        Универсальная проверка активности подписки:
+        - если у профиля есть date/DateField subscription_until — сверим с текущей датой;
+        - если есть булевый has_active_subscription — используем его;
+        - иначе считаем, что подписки нет.
+        """
+        until = getattr(obj, "subscription_until", None)
+        if until:
+            # если приходят datetime.date/datetime — приводим к дате
+            today = timezone.localdate()
+            try:
+                return until >= today
+            except Exception:
+                pass
 
-# ---------------------------
-# Экшены для User
-# ---------------------------
+        has_flag = getattr(obj, "has_active_subscription", None)
+        if isinstance(has_flag, bool):
+            return has_flag
+
+        return False
+
+    def subscription_until_display(self, obj):
+        """
+        Безопасный столбец для list_display:
+        не падает, если у модели нет поля subscription_until.
+        """
+        until = getattr(obj, "subscription_until", None)
+        if self._has_active(obj):
+            # если есть дата — покажем дату, иначе просто «Активна»
+            return until or "Активна"
+        return "—"
+
+    subscription_until_display.short_description = "Подписка до"
+
+
+# ---- Экшены для пользователей ----
 @admin.action(description="Заблокировать пользователей (is_active = False)")
 def deactivate_users(modeladmin, request, queryset):
     queryset.update(is_active=False)
@@ -52,67 +89,41 @@ def add_to_librarians_group(modeladmin, request, queryset):
         user.groups.add(group)
 
 
-# ---------------------------
-# Пользователь
-# ---------------------------
+# ---- Пользователи ----
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     """
-    Кастом админки пользователя без ссылок на несуществующие поля.
-    ВАЖНО: нигде не упоминаем поле is_librarian (его нет в модели).
+    Безопасная конфигурация под кастом/дефолтный User
     """
-
-    # вычисляемый флаг «Библиотекарь» — либо staff, либо в группе «Библиотекарь»
     def is_librarian_flag(self, obj):
-        try:
-            return bool(obj.is_staff or obj.groups.filter(name="Библиотекарь").exists())
-        except Exception:
-            return False
+        if hasattr(obj, "is_librarian"):
+            try:
+                return bool(getattr(obj, "is_librarian"))
+            except Exception:
+                return False
+        return obj.groups.filter(name="Библиотекарь").exists()
 
     is_librarian_flag.boolean = True
     is_librarian_flag.short_description = "Библиотекарь"
 
     list_display = (
-        "username",
-        "email",
-        "is_active",
-        "is_staff",
-        "is_superuser",
-        "is_librarian_flag",
-        "last_login",
-        "date_joined",
+        "username", "email", "is_active", "is_staff", "is_superuser",
+        "is_librarian_flag", "last_login", "date_joined",
     )
-    list_filter = ("is_active", "is_staff", "is_superuser", "groups")
+    list_filter = ("is_active", "is_staff", "is_superuser")
     search_fields = ("username", "email", "first_name", "last_name")
     ordering = ("-date_joined",)
     actions = (deactivate_users, activate_users, add_to_librarians_group)
 
-    # Наборы полей формы изменения пользователя
     fieldsets = (
         (None, {"fields": ("username", "password")}),
         (_("Персональная информация"), {"fields": ("first_name", "last_name", "email")}),
-        (
-            _("Права"),
-            {
-                "fields": (
-                    "is_active",
-                    "is_staff",
-                    "is_superuser",
-                    "groups",
-                    "user_permissions",
-                )
-            },
-        ),
+        (_("Права"), {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
         (_("Важно"), {"fields": ("last_login", "date_joined")}),
     )
-
-    # Наборы полей формы создания пользователя
     add_fieldsets = (
-        (
-            None,
-            {
-                "classes": ("wide",),
-                "fields": ("username", "email", "password1", "password2", "is_staff"),
-            },
-        ),
+        (None, {
+            "classes": ("wide",),
+            "fields": ("username", "email", "password1", "password2", "is_staff"),
+        }),
     )

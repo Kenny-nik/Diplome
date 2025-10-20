@@ -89,3 +89,9 @@ class Book(models.Model):
                 i += 1
             Book.objects.filter(pk=self.pk).update(slug=slug)
             self.slug = slug
+
+    is_premium = models.BooleanField(
+        default=False,
+        verbose_name="Доступно по подписке",
+        help_text="Если включено — книга доступна только для подписчиков и будет приоритетно показана на главной."
+    )

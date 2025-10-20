@@ -1,7 +1,7 @@
 from datetime import timedelta
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import (
@@ -13,26 +13,42 @@ from django.views.generic import (
     DeleteView,
 )
 from django.utils import timezone
+from django.db.models import Q
 
 from .models import Book
 from apps.loans.models import Loan
-from django.db.models import Q
 
 
-# ---------- ГЛАВНАЯ: рекомендации ----------
+def _user_has_active_subscription(user) -> bool:
+    """
+    True, если у пользователя активная подписка (profile.subscription_until >= сегодня).
+    Защищаемся от отсутствия профиля/поля.
+    """
+    try:
+        until = getattr(user.profile, "subscription_until", None)
+        if not until:
+            return False
+        today = timezone.now().date()
+        return until >= today
+    except Exception:
+        return False
+
+
+# ---------- ГЛАВНАЯ: хиты + приоритет премиум ---------- #
 class HomePageView(TemplateView):
     template_name = "home.html"
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["recommended_books"] = (
+        ctx = super().get_context_data(**kwargs)
+        ctx["recommended_books"] = (
             Book.objects.filter(is_available=True)
-            .order_by("-rating", "-created_at")[:5]
+            .order_by("-is_premium", "-rating", "-created_at")[:5]
         )
-        return context
+        ctx["user_has_subscription"] = _user_has_active_subscription(self.request.user) if self.request.user.is_authenticated else False
+        return ctx
 
 
-# ---------- КАТАЛОГ ----------
+# ---------- КАТАЛОГ ---------- #
 class BookListView(ListView):
     model = Book
     template_name = "books/book_list.html"
@@ -51,7 +67,6 @@ class BookListView(ListView):
     }
 
     def _canonize_genre(self, raw: str) -> str:
-        """Вернуть канонический код жанра по входному значению (код/название/старый вариант)."""
         g = (raw or "").strip().lower()
         if not g:
             return ""
@@ -78,7 +93,7 @@ class BookListView(ListView):
         if genre_code:
             qs = qs.filter(Q(genre__iexact=genre_code) | Q(genre__iexact=genre_raw))
 
-        return qs.order_by("title")
+        return qs.order_by("-is_premium", "title")
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -88,10 +103,11 @@ class BookListView(ListView):
             "author": self.request.GET.get("author", ""),
             "genre": self.request.GET.get("genre", ""),
         }
+        ctx["user_has_subscription"] = _user_has_active_subscription(self.request.user) if self.request.user.is_authenticated else False
         return ctx
 
 
-# ---------- ДЕТАЛИ КНИГИ ----------
+# ---------- ДЕТАЛИ КНИГИ ---------- #
 class BookDetailView(DetailView):
     model = Book
     template_name = "books/book_detail.html"
@@ -101,16 +117,21 @@ class BookDetailView(DetailView):
         ctx = super().get_context_data(**kwargs)
         book = self.object
         user = self.request.user
+        user_sub = _user_has_active_subscription(user) if user.is_authenticated else False
+
         ctx["can_borrow"] = (
             user.is_authenticated
             and not getattr(user, "is_librarian", False)
             and book.is_available
             and (book.available_copies or 0) > 0
+            and (not book.is_premium or user_sub)
         )
+        ctx["needs_subscription"] = book.is_premium and not user_sub
+        ctx["user_has_subscription"] = user_sub
         return ctx
 
 
-# ---------- CRUD для библиотекаря ----------
+# ---------- CRUD для библиотекаря ---------- #
 class BookCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     model = Book
     template_name = "books/book_form.html"
@@ -126,6 +147,7 @@ class BookCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         "total_copies",
         "available_copies",
         "is_available",
+        "is_premium",  # ← флаг «по подписке»
     ]
     success_url = reverse_lazy("books:book_list")
 
@@ -153,6 +175,7 @@ class BookUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         "total_copies",
         "available_copies",
         "is_available",
+        "is_premium",  # ← флаг «по подписке»
     ]
 
     def test_func(self):
@@ -176,19 +199,23 @@ class BookDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         u = self.request.user
         return getattr(u, "is_librarian", False) or u.is_staff
 
-
     def delete(self, request, *args, **kwargs):
         messages.success(request, "Книга успешно удалена!")
         return super().delete(request, *args, **kwargs)
 
 
-# ---------- Добавить в «Мои книги» ----------
+# ---------- Добавить в «Мои книги» (с проверкой подписки) ---------- #
 class BookBorrowView(LoginRequiredMixin, View):
     def post(self, request, pk):
         book = get_object_or_404(Book, pk=pk)
 
         if (book.available_copies or 0) <= 0:
             messages.error(request, "Извините, все экземпляры уже выданы.")
+            return redirect("books:book_detail", pk=pk)
+
+        # запрещаем брать премиум без подписки
+        if getattr(book, "is_premium", False) and not _user_has_active_subscription(request.user):
+            messages.error(request, "Эта книга доступна только по подписке.")
             return redirect("books:book_detail", pk=pk)
 
         if Loan.objects.filter(user=request.user, book=book, return_date__isnull=True).exists():
@@ -212,7 +239,7 @@ class BookBorrowView(LoginRequiredMixin, View):
         return redirect("books:book_detail", pk=pk)
 
 
-# ---------- Вернуть / убрать из «моих книг» ----------
+# ---------- Вернуть / убрать из «моих книг» ---------- #
 class BookReturnView(LoginRequiredMixin, View):
     def post(self, request, pk):
         book = get_object_or_404(Book, pk=pk)
@@ -252,7 +279,7 @@ class BookRemoveView(LoginRequiredMixin, View):
         return redirect("books:book_detail", pk=pk)
 
 
-# ---------- Мои книги ----------
+# ---------- Мои книги ---------- #
 class MyBooksView(LoginRequiredMixin, TemplateView):
     template_name = "books/my_books.html"
 
@@ -263,6 +290,7 @@ class MyBooksView(LoginRequiredMixin, TemplateView):
             .select_related("book")
             .order_by("-loan_date")
         )
+        ctx["user_has_subscription"] = _user_has_active_subscription(self.request.user)
         return ctx
 
 
