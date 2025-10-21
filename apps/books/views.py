@@ -1,54 +1,47 @@
 from datetime import timedelta
+from itertools import chain
+
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
+from django.utils import timezone
 from django.views import View
 from django.views.generic import (
-    TemplateView,
-    ListView,
-    DetailView,
-    CreateView,
-    UpdateView,
-    DeleteView,
+    TemplateView, ListView, DetailView, CreateView, UpdateView, DeleteView
 )
-from django.utils import timezone
-from django.db.models import Q
 
 from .models import Book
 from apps.loans.models import Loan
 
 
-def _user_has_active_subscription(user) -> bool:
-    """
-    True, если у пользователя активная подписка (profile.subscription_until >= сегодня).
-    Защищаемся от отсутствия профиля/поля.
-    """
+# ---- утилита: активна ли подписка у пользователя
+def _has_active_subscription(user) -> bool:
     try:
-        until = getattr(user.profile, "subscription_until", None)
-        if not until:
-            return False
-        today = timezone.now().date()
-        return until >= today
+        sub = user.profile.subscription_until
+        return bool(sub and sub >= timezone.now().date())
     except Exception:
         return False
 
 
-# ---------- ГЛАВНАЯ: хиты + приоритет премиум ---------- #
+# ---------- ГЛАВНАЯ: рекомендации ----------
 class HomePageView(TemplateView):
     template_name = "home.html"
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["recommended_books"] = (
-            Book.objects.filter(is_available=True)
-            .order_by("-is_premium", "-rating", "-created_at")[:5]
-        )
-        ctx["user_has_subscription"] = _user_has_active_subscription(self.request.user) if self.request.user.is_authenticated else False
+
+        # Премиум книги показываем приоритетно, но суммарно не более 5
+        premium = Book.objects.filter(is_available=True, is_premium=True).order_by("-rating", "-created_at")[:5]
+        usual = Book.objects.filter(is_available=True, is_premium=False).order_by("-rating", "-created_at")[:5]
+        combined = list(chain(premium, usual))[:5]
+
+        ctx["recommended_books"] = combined
         return ctx
 
 
-# ---------- КАТАЛОГ ---------- #
+# ---------- КАТАЛОГ ----------
 class BookListView(ListView):
     model = Book
     template_name = "books/book_list.html"
@@ -93,7 +86,8 @@ class BookListView(ListView):
         if genre_code:
             qs = qs.filter(Q(genre__iexact=genre_code) | Q(genre__iexact=genre_raw))
 
-        return qs.order_by("-is_premium", "title")
+        # Сортируем стабильнее: по названию
+        return qs.order_by("title")
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -103,11 +97,13 @@ class BookListView(ListView):
             "author": self.request.GET.get("author", ""),
             "genre": self.request.GET.get("genre", ""),
         }
-        ctx["user_has_subscription"] = _user_has_active_subscription(self.request.user) if self.request.user.is_authenticated else False
+        # чтобы в шаблоне можно было отключать кнопки для премиум без подписки
+        user = self.request.user
+        ctx["has_premium"] = user.is_authenticated and _has_active_subscription(user)
         return ctx
 
 
-# ---------- ДЕТАЛИ КНИГИ ---------- #
+# ---------- ДЕТАЛИ КНИГИ ----------
 class BookDetailView(DetailView):
     model = Book
     template_name = "books/book_detail.html"
@@ -117,37 +113,32 @@ class BookDetailView(DetailView):
         ctx = super().get_context_data(**kwargs)
         book = self.object
         user = self.request.user
-        user_sub = _user_has_active_subscription(user) if user.is_authenticated else False
 
-        ctx["can_borrow"] = (
+        can_borrow = (
             user.is_authenticated
             and not getattr(user, "is_librarian", False)
             and book.is_available
             and (book.available_copies or 0) > 0
-            and (not book.is_premium or user_sub)
         )
-        ctx["needs_subscription"] = book.is_premium and not user_sub
-        ctx["user_has_subscription"] = user_sub
+
+        # Запрет на премиум без подписки
+        if can_borrow and book.is_premium and not _has_active_subscription(user):
+            can_borrow = False
+
+        ctx["can_borrow"] = can_borrow
+        ctx["requires_premium"] = bool(book.is_premium)
+        ctx["has_premium"] = user.is_authenticated and _has_active_subscription(user)
         return ctx
 
 
-# ---------- CRUD для библиотекаря ---------- #
+# ---------- CRUD для библиотекаря ----------
 class BookCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     model = Book
     template_name = "books/book_form.html"
     fields = [
-        "title",
-        "author",
-        "isbn",
-        "publication_year",
-        "genre",
-        "description",
-        "cover_url",
-        "rating",
-        "total_copies",
-        "available_copies",
-        "is_available",
-        "is_premium",  # ← флаг «по подписке»
+        "title", "author", "isbn", "publication_year", "genre", "description",
+        "cover_url", "rating", "total_copies", "available_copies",
+        "is_available", "is_premium",
     ]
     success_url = reverse_lazy("books:book_list")
 
@@ -164,18 +155,9 @@ class BookUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = Book
     template_name = "books/book_form.html"
     fields = [
-        "title",
-        "author",
-        "isbn",
-        "publication_year",
-        "genre",
-        "description",
-        "cover_url",
-        "rating",
-        "total_copies",
-        "available_copies",
-        "is_available",
-        "is_premium",  # ← флаг «по подписке»
+        "title", "author", "isbn", "publication_year", "genre", "description",
+        "cover_url", "rating", "total_copies", "available_copies",
+        "is_available", "is_premium",
     ]
 
     def test_func(self):
@@ -204,18 +186,19 @@ class BookDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         return super().delete(request, *args, **kwargs)
 
 
-# ---------- Добавить в «Мои книги» (с проверкой подписки) ---------- #
+# ---------- Добавить в «Мои книги» ----------
 class BookBorrowView(LoginRequiredMixin, View):
     def post(self, request, pk):
         book = get_object_or_404(Book, pk=pk)
 
+        # Жёсткий запрет: премиум без подписки
+        if book.is_premium and not _has_active_subscription(request.user):
+            messages.error(request, "Эта книга доступна только по подписке. "
+                                    "Оформите подписку, чтобы получить доступ.")
+            return redirect("users:subscribe")
+
         if (book.available_copies or 0) <= 0:
             messages.error(request, "Извините, все экземпляры уже выданы.")
-            return redirect("books:book_detail", pk=pk)
-
-        # запрещаем брать премиум без подписки
-        if getattr(book, "is_premium", False) and not _user_has_active_subscription(request.user):
-            messages.error(request, "Эта книга доступна только по подписке.")
             return redirect("books:book_detail", pk=pk)
 
         if Loan.objects.filter(user=request.user, book=book, return_date__isnull=True).exists():
@@ -239,7 +222,7 @@ class BookBorrowView(LoginRequiredMixin, View):
         return redirect("books:book_detail", pk=pk)
 
 
-# ---------- Вернуть / убрать из «моих книг» ---------- #
+# ---------- Вернуть / убрать из «моих книг» ----------
 class BookReturnView(LoginRequiredMixin, View):
     def post(self, request, pk):
         book = get_object_or_404(Book, pk=pk)
@@ -248,7 +231,7 @@ class BookReturnView(LoginRequiredMixin, View):
             messages.info(request, "Активной выдачи этой книги у вас нет.")
             return redirect("books:my_books")
 
-        loan.return_date = timezone.now()   # DateTimeField
+        loan.return_date = timezone.now()
         loan.save(update_fields=["return_date", "status"])
 
         book.available_copies = (book.available_copies or 0) + 1
@@ -259,27 +242,33 @@ class BookReturnView(LoginRequiredMixin, View):
         return redirect("books:my_books")
 
 
+# ---------- Снять книгу из "моих книг" ----------
 class BookRemoveView(LoginRequiredMixin, View):
-    """Снять книгу из 'моих книг' (символическое 'вернуть')."""
+    """Убирает активную выдачу и возвращает назад на 'Мои книги'."""
     def post(self, request, pk):
         book = get_object_or_404(Book, pk=pk)
-        loan = Loan.objects.filter(user=request.user, book=book, return_date__isnull=True).first()
+        loan = Loan.objects.filter(
+            user=request.user, book=book, return_date__isnull=True
+        ).first()
+
         if not loan:
             messages.info(request, "У вас нет активной выдачи этой книги.")
-            return redirect("books:book_detail", pk=pk)
+            return redirect("books:my_books")
 
-        loan.return_date = timezone.now()   # DateTimeField
+        # закрываем выдачу
+        loan.return_date = timezone.now()
         loan.save(update_fields=["return_date", "status"])
 
+        # возвращаем экземпляр в доступные
         book.available_copies = (book.available_copies or 0) + 1
         book.is_available = True
         book.save(update_fields=["available_copies", "is_available"])
 
-        messages.success(request, f'Книга «{book.title}» убрана из "Моих книг".')
-        return redirect("books:book_detail", pk=pk)
+        messages.success(request, f'Книга «{book.title}» убрана из «Моих книг».')
+        return redirect("books:my_books")
 
 
-# ---------- Мои книги ---------- #
+# ---------- Мои книги ----------
 class MyBooksView(LoginRequiredMixin, TemplateView):
     template_name = "books/my_books.html"
 
@@ -290,7 +279,8 @@ class MyBooksView(LoginRequiredMixin, TemplateView):
             .select_related("book")
             .order_by("-loan_date")
         )
-        ctx["user_has_subscription"] = _user_has_active_subscription(self.request.user)
+        # вдруг пригодится в шаблоне
+        ctx["has_premium"] = _has_active_subscription(self.request.user)
         return ctx
 
 

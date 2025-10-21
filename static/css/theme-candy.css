@@ -1,0 +1,17 @@
+/* === Candy Pop — розово-фиолетовый, светлый === */
+:root{
+  --bs-primary:#ff4d6d; --bs-primary-rgb:255,77,109;
+  --bs-secondary:#845ef7; --bs-success:#22c55e; --bs-info:#06b6d4;
+  --bs-warning:#f59e0b; --bs-danger:#ef4444; --bs-light:#fff7fa; --bs-dark:#111827;
+  --bs-body-bg:#fffafc; --bs-body-color:#1f2937;
+}
+body{background:
+  radial-gradient(1200px 600px at -10% -10%, #ffe3ec, transparent 60%),
+  radial-gradient(900px 500px at 110% -20%, #e9d8fd, transparent 60%),
+  var(--bs-body-bg);}
+.navbar{backdrop-filter:blur(8px); box-shadow:0 8px 24px rgba(0,0,0,.06)}
+.card{border:0; box-shadow:0 10px 24px rgba(0,0,0,.08); border-radius:1rem}
+.btn-primary{background:linear-gradient(135deg,#ff4d6d,#ff7aa2); border:0}
+.btn-primary:hover{filter:brightness(.95)}
+.badge.bg-warning{background:#ffe48c!important; color:#7a5200!important}
+.premium-badge{background:linear-gradient(135deg,#ffd700,#ffb300)!important; color:#1f1f1f!important}

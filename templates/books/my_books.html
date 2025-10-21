@@ -1,92 +1,55 @@
 {% extends "base.html" %}
 {% load static %}
-{% load cover_tags %}
-
 {% block title %}Мои книги{% endblock %}
 
 {% block content %}
-<style>
-  .book-thumb{
-    position: relative;
-    height: 260px;
-    overflow: hidden;
-    background: #f8f9fa;
-    border-top-left-radius: .5rem;
-    border-top-right-radius: .5rem;
-  }
-  .book-thumb img{
-    position: absolute; inset: 0;
-    width: 100%; height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-  .book-card{ transition: transform .15s ease; }
-  .book-card:hover{ transform: translateY(-3px); }
-
-  /* стек из базовой и «удалённой» обложки */
-  .cover-stack { position:relative; width:100%; height:100%; }
-  .cover-stack img.base { z-index: 1; }
-  .cover-stack img.remote { z-index: 2; }
-</style>
-
 <div class="container">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2 class="mb-0">Мои книги</h2>
-    <a href="{% url 'books:book_list' %}" class="btn btn-outline-primary">Каталог</a>
-  </div>
+  <h2 class="mb-3">Мои книги</h2>
 
   {% if loans %}
-    <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-3">
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
       {% for loan in loans %}
         {% with book=loan.book %}
-        <div class="col">
-          <div class="card h-100 book-card">
-            <div class="book-thumb">
-              <div class="cover-stack">
-                {% cover_for_book book as cover_rel %}
-                {% with v=book.updated_at|date:"U" %}
-                  <img class="base" src="{% static cover_rel %}?v={{ v }}" alt="{{ book.title }}">
-
-                  {% if book.cover_image %}
-                    <img class="remote"
-                         src="{{ book.cover_image.url }}?v={{ v }}"
-                         alt="{{ book.title }}"
-                         onerror="this.style.display='none'">
-                  {% elif book.cover_url %}
-                    <img class="remote"
-                         src="{{ book.cover_url }}?v={{ v }}"
-                         alt="{{ book.title }}"
-                         onerror="this.style.display='none'">
-                  {% endif %}
-                {% endwith %}
-              </div>
-            </div>
-
-            <div class="card-body p-2 d-flex flex-column">
-              <div class="fw-semibold text-truncate" title="{{ book.title }}">{{ book.title }}</div>
-              <div class="small text-muted text-truncate" title="{{ book.author }}">{{ book.author }}</div>
-
-              <div class="mt-1 mb-2">
-                <span class="badge bg-warning text-dark">★ {{ book.rating|floatformat:1 }}</span>
-                {% if loan.due_date %}
-                  <span class="badge bg-secondary ms-1">До: {{ loan.due_date|date:"d.m.Y" }}</span>
+          <div class="col">
+            <div class="card h-100 p-3">
+              <div class="cover-3x4 mb-3 position-relative">
+                {% if book.is_premium %}<div class="premium-badge">Премиум</div>{% endif %}
+                {% if book.preferred_cover %}
+                  <img src="{{ book.preferred_cover }}" alt="{{ book.title }}">
+                {% else %}
+                  <img src="{% static 'img/cover-placeholder.png' %}" alt="{{ book.title }}">
                 {% endif %}
               </div>
 
-              <form method="post" action="{% url 'books:book_remove' book.pk %}" class="mt-auto">
-                {% csrf_token %}
-                <button class="btn btn-sm btn-outline-danger w-100">Убрать</button>
-              </form>
+              <div class="fw-semibold text-truncate">{{ book.title }}</div>
+              <div class="small text-muted text-truncate mb-2">{{ book.author }}</div>
+              <div class="mb-2 small text-muted">До: {{ loan.due_date|date:"d.m.Y" }}</div>
+
+              <div class="d-flex gap-2 mt-auto">
+                <button type="button" class="btn btn-outline-secondary js-read-btn flex-fill">Читать</button>
+
+                <form method="post" action="{% url 'books:book_remove' book.pk %}" class="flex-fill">
+                  {% csrf_token %}
+                  <button class="btn btn-outline-danger w-100">Убрать</button>
+                </form>
+              </div>
             </div>
           </div>
-        </div>
         {% endwith %}
       {% endfor %}
     </div>
   {% else %}
-    <div class="alert alert-info">
-      <i class="fas fa-info-circle me-1"></i> У вас пока нет добавленных книг.
-    </div>
+    <div class="alert alert-info">У вас пока нет активных книг.</div>
   {% endif %}
 </div>
+
+{% block extra_js %}
+<script>
+  document.addEventListener('click', function(e){
+    if(e.target && e.target.classList.contains('js-read-btn')){
+      alert('Читайте книги в будущем проекте ✨');
+    }
+  });
+</script>
+{% endblock %}
 {% endblock %}

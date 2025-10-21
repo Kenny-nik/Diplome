@@ -1,149 +1,80 @@
 {% extends "base.html" %}
 {% load static %}
-{% load cover_tags %}
-
 {% block title %}Главная — Библиотека{% endblock %}
 
 {% block content %}
-<style>
-  /* === HERO === */
-  .hero-head{display:flex;align-items:center;gap:1rem;margin-bottom:.75rem}
-  .hero-title{margin:0;font-weight:800;letter-spacing:.5px}
-  .hero-sub{margin:0;color:#6c757d}
 
-  /* Карточки-хиты */
-  .book-card{transition:transform .15s ease,box-shadow .15s ease;border-radius:.75rem;overflow:hidden}
-  .book-card:hover{transform:translateY(-4px);box-shadow:0 10px 22px rgba(0,0,0,.12)}
-
-  .book-thumb{position:relative;height:320px;overflow:hidden;background:#f8f9fa}
-  @media (min-width: 992px){.book-thumb{height:360px}}
-  .book-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
-
-  .hit-badge{position:absolute;top:12px;left:12px;background:linear-gradient(135deg,#ffd24d,#ffc107,#ffb300);
-             color:#1f1f1f;font-weight:800;font-size:.8rem;letter-spacing:.6px;padding:.28rem .6rem;border-radius:.35rem;
-             box-shadow:0 3px 10px rgba(0,0,0,.18);text-transform:uppercase;z-index:3}
-
-  .premium-badge{position:absolute;top:12px;right:12px;background:linear-gradient(135deg,#ffd24d,#ffb300,#ff9800);
-                 color:#1f1f1f;font-weight:800;font-size:.7rem;letter-spacing:.5px;padding:.25rem .5rem;border-radius:.35rem;
-                 box-shadow:0 3px 10px rgba(0,0,0,.18);text-transform:uppercase;z-index:3}
-
-  /* Stretched link не должен перекрывать кнопки */
-  .card.position-relative .stretched-link{z-index:1}
-  .card.position-relative .btn{position:relative;z-index:2}
-</style>
-
-<div class="container">
-
-  {# ---- Плашка подписки (для гостей и пользователей без активной подписки) ---- #}
-  {% if not user.is_authenticated or not user_has_subscription %}
-    <div class="alert alert-warning d-flex align-items-center justify-content-between mt-2" role="alert">
-      <div>
-        <div class="fw-semibold">Оформите подписку на библиотеку — 199₽/мес</div>
-        <div class="small text-muted">Поддержите проект и получите доступ к эксклюзивным книгам.</div>
-      </div>
-      <div class="d-flex gap-2">
-        <!-- Модалка-оплата (демо) -->
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#subscribeModal">Оформить</button>
-        <a class="btn btn-outline-secondary" href="{% url 'users:profile' %}">Подробнее</a>
-      </div>
-    </div>
-
-    <!-- Modal: фиктивная "оплата" -->
-    <div class="modal fade" id="subscribeModal" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Оплата подписки — 199₽/мес</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
-          </div>
-          <div class="modal-body">
-            <div class="mb-3">
-              <label class="form-label">Номер карты</label>
-              <input class="form-control" placeholder="0000 0000 0000 0000">
-            </div>
-            <div class="row g-2">
-              <div class="col">
-                <label class="form-label">MM/YY</label>
-                <input class="form-control" placeholder="12/34">
-              </div>
-              <div class="col">
-                <label class="form-label">CVC</label>
-                <input class="form-control" placeholder="123">
-              </div>
-            </div>
-            <div class="form-text mt-2">
-              Демонстрация: кнопка «Оплатить» пока не совершает реальных платежей.
-            </div>
-          </div>
-          <div class="modal-footer">
-            <a class="btn btn-primary" href="{% url 'users:subscribe' %}">Оплатить</a>
-          </div>
+{# ===== Hero: описание слева + баннер ===== #}
+<div class="container mb-4">
+  <div class="row g-4 align-items-stretch">
+    <div class="col-12 col-lg-8">
+      <div class="card h-100 p-4">
+        <h1 class="mb-2 fw-bold">Читай больше. Поддерживай проект. Открывай новое.</h1>
+        <p class="lead text-muted">Эксклюзивные издания для подписчиков, удобная полка «Мои книги» и подборки каждую неделю.</p>
+        <ul class="mb-3">
+          <li>Единый визуальный стиль и плавные анимации</li>
+          <li>Премиум-книги — для подписчиков</li>
+          <li>Быстрый доступ: взять/вернуть в один клик</li>
+        </ul>
+        <div class="d-flex gap-2">
+          <a href="{% url 'books:book_list' %}" class="btn btn-primary"><i class="fa fa-compass me-2"></i>Каталог</a>
+          {% if request.user.is_authenticated %}
+            <a href="{% url 'users:profile' %}" class="btn btn-outline-secondary"><i class="fa fa-user me-2"></i>Профиль</a>
+          {% else %}
+            <a href="{% url 'users:register' %}" class="btn btn-outline-secondary"><i class="fa fa-user-plus me-2"></i>Регистрация</a>
+          {% endif %}
         </div>
       </div>
     </div>
-  {% endif %}
-
-  <div class="d-flex justify-content-between align-items-center mt-3">
-    <div class="hero-head">
-      <h2 class="hero-title">Хиты недели</h2>
-      <p class="hero-sub d-none d-sm-block">
-        Топ-5 книг по рейтингу{% if not user_has_subscription %} (премиум-книги в приоритете){% endif %}
-      </p>
+    <div class="col-12 col-lg-4">
+      <div class="card h-100 p-4 d-flex justify-content-center text-center" style="border:2px dashed rgba(255,255,255,.15)">
+        <div class="text-muted">здесь могла быть ваша реклама</div>
+      </div>
     </div>
-    <a href="{% url 'books:book_list' %}" class="btn btn-outline-primary">Каталог</a>
+  </div>
+</div>
+
+{# ===== Блок подписки ===== #}
+<div class="container mb-3">
+  {% if request.user.is_authenticated %}
+    {% now "Y-m-d" as today_str %}
+    {% with sub_str=request.user.profile.subscription_until|date:"Y-m-d" %}
+      {% if not sub_str or sub_str < today_str %}
+        <div class="card p-3">
+          <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+              <i class="fa-solid fa-crown text-warning fs-3"></i>
+              <div>
+                <div class="fw-bold">Оформите подписку на библиотеку — 199 ₽/мес</div>
+                <div class="text-muted small">Поддержите проект и получите доступ к эксклюзивным книгам</div>
+              </div>
+            </div>
+            <a class="btn btn-primary" href="{% url 'users:subscribe' %}">Оформить</a>
+          </div>
+        </div>
+      {% endif %}
+    {% endwith %}
+  {% endif %}
+</div>
+
+{# ===== Хиты недели (ТОП-5) — единые обложки ===== #}
+<div class="container">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h2 class="mb-0">Хиты недели</h2>
+    <a href="{% url 'books:book_list' %}" class="btn btn-outline-secondary">Все книги</a>
   </div>
 
-  {% if recommended_books %}
-    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-4">
-      {% for book in recommended_books %}
-        <div class="col">
-          <div class="card h-100 book-card shadow-sm position-relative">
-            <div class="book-thumb">
-              <div class="hit-badge">ХИТ</div>
-              {% if book.is_premium %}
-                <div class="premium-badge">Премиум</div>
-              {% endif %}
-              {% if book.preferred_cover %}
-                <img src="{{ book.preferred_cover }}" alt="{{ book.title }}">
-              {% else %}
-                {% cover_for_book book as cover_rel %}
-                <img src="{% static cover_rel %}" alt="{{ book.title }}">
-              {% endif %}
-            </div>
-
-            <div class="card-body p-3 d-flex flex-column">
-              <a href="{% url 'books:book_detail' book.pk %}" class="stretched-link"></a>
-
-              <div class="fw-semibold text-truncate" title="{{ book.title }}">{{ book.title }}</div>
-              <div class="small text-muted text-truncate" title="{{ book.author }}">{{ book.author }}</div>
-
-              <div class="mt-2 mb-3">
-                <span class="badge bg-warning text-dark">★ {{ book.rating|floatformat:1 }}</span>
-                <span class="badge bg-secondary ms-1">В наличии: {{ book.available_copies }}</span>
-              </div>
-
-              {% if user.is_authenticated and not user.is_librarian %}
-                {% if book.is_premium and not user_has_subscription %}
-                  <button class="btn btn-outline-secondary w-100" disabled title="Только по подписке">
-                    Доступно по подписке
-                  </button>
-                {% else %}
-                  <form method="post" action="{% url 'books:book_borrow' book.pk %}" class="mt-auto">
-                    {% csrf_token %}
-                    <button class="btn btn-primary w-100"
-                            {% if not book.is_available or book.available_copies|default:0 < 1 %}disabled{% endif %}>
-                      Добавить
-                    </button>
-                  </form>
-                {% endif %}
-              {% endif %}
-            </div>
-          </div>
-        </div>
-      {% endfor %}
-    </div>
-  {% else %}
-    <div class="alert alert-info mt-3">Пока нет хитов.</div>
-  {% endif %}
+  {% now "Y-m-d" as today_str %}
+  {% with sub_str=request.user.profile.subscription_until|date:"Y-m-d" %}
+    {% if sub_str and sub_str >= today_str %}
+      {% with True as has_premium %}
+        {% include "partials/_home_recommended_grid.html" %}
+      {% endwith %}
+    {% else %}
+      {% with False as has_premium %}
+        {% include "partials/_home_recommended_grid.html" %}
+      {% endwith %}
+    {% endif %}
+  {% endwith %}
 </div>
 {% endblock %}

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Подписка активирована{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 720px;">
+  <div class="alert alert-success mt-3">
+    <h4 class="alert-heading">Спасибо за поддержку!</h4>
+    <p>Подписка успешно активирована. Теперь премиум-книги доступны для чтения.</p>
+    <hr>
+    <a class="btn btn-primary" href="{% url 'home' %}">На главную</a>
+    <a class="btn btn-outline-secondary ms-2" href="{% url 'users:profile' %}">В профиль</a>
+  </div>
+</div>
+{% endblock %}
