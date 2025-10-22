@@ -1,28 +1,24 @@
 from datetime import timedelta
-from itertools import chain
-
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.db.models import Q
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
-from django.utils import timezone
 from django.views import View
 from django.views.generic import (
-    TemplateView, ListView, DetailView, CreateView, UpdateView, DeleteView
+    TemplateView,
+    ListView,
+    DetailView,
+    CreateView,
+    UpdateView,
+    DeleteView,
 )
+from django.utils import timezone
+from django.db import models
+from django.db.models import Q
 
 from .models import Book
 from apps.loans.models import Loan
-
-
-# ---- утилита: активна ли подписка у пользователя
-def _has_active_subscription(user) -> bool:
-    try:
-        sub = user.profile.subscription_until
-        return bool(sub and sub >= timezone.now().date())
-    except Exception:
-        return False
+from apps.users.utils import user_has_premium
 
 
 # ---------- ГЛАВНАЯ: рекомендации ----------
@@ -30,15 +26,14 @@ class HomePageView(TemplateView):
     template_name = "home.html"
 
     def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-
-        # Премиум книги показываем приоритетно, но суммарно не более 5
-        premium = Book.objects.filter(is_available=True, is_premium=True).order_by("-rating", "-created_at")[:5]
-        usual = Book.objects.filter(is_available=True, is_premium=False).order_by("-rating", "-created_at")[:5]
-        combined = list(chain(premium, usual))[:5]
-
-        ctx["recommended_books"] = combined
-        return ctx
+        context = super().get_context_data(**kwargs)
+        context["recommended_books"] = (
+            Book.objects.filter(is_available=True)
+            .order_by("-rating", "-created_at")[:5]
+        )
+        # Единый флаг премиума в шаблон
+        context["has_premium"] = user_has_premium(self.request.user)
+        return context
 
 
 # ---------- КАТАЛОГ ----------
@@ -86,7 +81,6 @@ class BookListView(ListView):
         if genre_code:
             qs = qs.filter(Q(genre__iexact=genre_code) | Q(genre__iexact=genre_raw))
 
-        # Сортируем стабильнее: по названию
         return qs.order_by("title")
 
     def get_context_data(self, **kwargs):
@@ -97,9 +91,7 @@ class BookListView(ListView):
             "author": self.request.GET.get("author", ""),
             "genre": self.request.GET.get("genre", ""),
         }
-        # чтобы в шаблоне можно было отключать кнопки для премиум без подписки
-        user = self.request.user
-        ctx["has_premium"] = user.is_authenticated and _has_active_subscription(user)
+        ctx["has_premium"] = user_has_premium(self.request.user)
         return ctx
 
 
@@ -113,21 +105,13 @@ class BookDetailView(DetailView):
         ctx = super().get_context_data(**kwargs)
         book = self.object
         user = self.request.user
-
-        can_borrow = (
+        ctx["has_premium"] = user_has_premium(user)
+        ctx["can_borrow"] = (
             user.is_authenticated
             and not getattr(user, "is_librarian", False)
             and book.is_available
             and (book.available_copies or 0) > 0
         )
-
-        # Запрет на премиум без подписки
-        if can_borrow and book.is_premium and not _has_active_subscription(user):
-            can_borrow = False
-
-        ctx["can_borrow"] = can_borrow
-        ctx["requires_premium"] = bool(book.is_premium)
-        ctx["has_premium"] = user.is_authenticated and _has_active_subscription(user)
         return ctx
 
 
@@ -136,9 +120,18 @@ class BookCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     model = Book
     template_name = "books/book_form.html"
     fields = [
-        "title", "author", "isbn", "publication_year", "genre", "description",
-        "cover_url", "rating", "total_copies", "available_copies",
-        "is_available", "is_premium",
+        "title",
+        "author",
+        "isbn",
+        "publication_year",
+        "genre",
+        "description",
+        "cover_url",
+        "rating",
+        "total_copies",
+        "available_copies",
+        "is_available",
+        "is_premium",
     ]
     success_url = reverse_lazy("books:book_list")
 
@@ -155,9 +148,18 @@ class BookUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = Book
     template_name = "books/book_form.html"
     fields = [
-        "title", "author", "isbn", "publication_year", "genre", "description",
-        "cover_url", "rating", "total_copies", "available_copies",
-        "is_available", "is_premium",
+        "title",
+        "author",
+        "isbn",
+        "publication_year",
+        "genre",
+        "description",
+        "cover_url",
+        "rating",
+        "total_copies",
+        "available_copies",
+        "is_available",
+        "is_premium",
     ]
 
     def test_func(self):
@@ -191,11 +193,13 @@ class BookBorrowView(LoginRequiredMixin, View):
     def post(self, request, pk):
         book = get_object_or_404(Book, pk=pk)
 
-        # Жёсткий запрет: премиум без подписки
-        if book.is_premium and not _has_active_subscription(request.user):
-            messages.error(request, "Эта книга доступна только по подписке. "
-                                    "Оформите подписку, чтобы получить доступ.")
-            return redirect("users:subscribe")
+        # Премиум-блокировка на сервере (универсально: дата или флаг)
+        if getattr(book, "is_premium", False) and not user_has_premium(request.user):
+            messages.warning(
+                request,
+                "Эта книга доступна по подписке. Оформите подписку, чтобы получить доступ."
+            )
+            return redirect("books:book_detail", pk=pk)
 
         if (book.available_copies or 0) <= 0:
             messages.error(request, "Извините, все экземпляры уже выданы.")
@@ -238,34 +242,27 @@ class BookReturnView(LoginRequiredMixin, View):
         book.is_available = True
         book.save(update_fields=["available_copies", "is_available"])
 
-        messages.success(request, f'Книга «{book.title}» удалена из «Моих книг».')
+        messages.success(request, f'Книга «{book.title}» убрана из «Моих книг».')
         return redirect("books:my_books")
 
 
-# ---------- Снять книгу из "моих книг" ----------
 class BookRemoveView(LoginRequiredMixin, View):
-    """Убирает активную выдачу и возвращает назад на 'Мои книги'."""
     def post(self, request, pk):
         book = get_object_or_404(Book, pk=pk)
-        loan = Loan.objects.filter(
-            user=request.user, book=book, return_date__isnull=True
-        ).first()
-
+        loan = Loan.objects.filter(user=request.user, book=book, return_date__isnull=True).first()
         if not loan:
             messages.info(request, "У вас нет активной выдачи этой книги.")
-            return redirect("books:my_books")
+            return redirect("books:book_detail", pk=pk)
 
-        # закрываем выдачу
         loan.return_date = timezone.now()
         loan.save(update_fields=["return_date", "status"])
 
-        # возвращаем экземпляр в доступные
         book.available_copies = (book.available_copies or 0) + 1
         book.is_available = True
         book.save(update_fields=["available_copies", "is_available"])
 
-        messages.success(request, f'Книга «{book.title}» убрана из «Моих книг».')
-        return redirect("books:my_books")
+        messages.success(request, f'Книга «{book.title}» убрана из "Моих книг".')
+        return redirect("books:book_detail", pk=pk)
 
 
 # ---------- Мои книги ----------
@@ -279,8 +276,7 @@ class MyBooksView(LoginRequiredMixin, TemplateView):
             .select_related("book")
             .order_by("-loan_date")
         )
-        # вдруг пригодится в шаблоне
-        ctx["has_premium"] = _has_active_subscription(self.request.user)
+        ctx["has_premium"] = user_has_premium(self.request.user)
         return ctx
 
 

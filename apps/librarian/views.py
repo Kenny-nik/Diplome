@@ -22,55 +22,53 @@ class LibrarianAccessMixin(LoginRequiredMixin, UserPassesTestMixin):
         return u.is_staff or u.groups.filter(name="Библиотекарь").exists()
 
 
-class DashboardView(LibrarianAccessMixin, TemplateView):
+class DashboardView(TemplateView):
     template_name = "librarian/dashboard.html"
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        today = timezone.localdate()
+        User = get_user_model()
+        today = timezone.now().date()
 
-        ctx["total_users"] = User.objects.count()
+        ctx["users_count"] = User.objects.count()
         ctx["active_users"] = User.objects.filter(is_active=True).count()
 
-        ctx["total_loans"] = Loan.objects.count()
-        ctx["active_loans"] = Loan.objects.filter(return_date__isnull=True).count()
-        ctx["overdue_loans"] = Loan.objects.filter(
-            return_date__isnull=True, due_date__lt=today
-        ).count()
+        loans_qs = Loan.objects.select_related("book", "user")
+        ctx["loans_count"] = loans_qs.count()
 
-        ctx["recent_loans"] = (
-            Loan.objects.select_related("book", "user")
-            .order_by("-loan_date")[:10]
-        )
+        active_qs = loans_qs.filter(return_date__isnull=True)
+        ctx["active_loans"] = active_qs.count()
+        ctx["overdue_loans"] = active_qs.filter(due_date__lt=today).count()
+
+        ctx["last_loans"] = loans_qs.order_by("-loan_date")[:20]
         return ctx
 
 
-class UsersListView(LibrarianAccessMixin, ListView):
-    model = User
+class UsersListView(ListView):
     template_name = "librarian/users.html"
     context_object_name = "users"
-    paginate_by = 25
-    ordering = "-date_joined"
+    paginate_by = 50
 
     def get_queryset(self):
-        qs = User.objects.all()
+        User = get_user_model()
+        qs = User.objects.all().order_by("email")
+
         q = (self.request.GET.get("q") or "").strip()
-        is_active = self.request.GET.get("is_active")
-        is_staff = self.request.GET.get("is_staff")
+        active = (self.request.GET.get("active") or "").strip()  # yes|no|""
+        staff = (self.request.GET.get("staff") or "").strip()    # yes|no|""
 
         if q:
             qs = qs.filter(
-                Q(username__icontains=q)
-                | Q(email__icontains=q)
+                Q(email__icontains=q)
+                | Q(username__icontains=q)
                 | Q(first_name__icontains=q)
                 | Q(last_name__icontains=q)
             )
-        if is_active in {"yes", "no"}:
-            qs = qs.filter(is_active=(is_active == "yes"))
-        if is_staff in {"yes", "no"}:
-            qs = qs.filter(is_staff=(is_staff == "yes"))
-
-        return qs.order_by(self.ordering)
+        if active in ("yes", "no"):
+            qs = qs.filter(is_active=(active == "yes"))
+        if staff in ("yes", "no"):
+            qs = qs.filter(is_staff=(staff == "yes"))
+        return qs
 
 
 class LoansListView(LibrarianAccessMixin, ListView):

@@ -20,7 +20,6 @@ class JWTAuth(JWTAuthentication):
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
 
-    # Добавляем кастомные claims
     refresh['email'] = user.email
     refresh['role'] = user.role
 

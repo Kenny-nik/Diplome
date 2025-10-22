@@ -6,7 +6,6 @@ from django.dispatch import receiver
 from django.utils import timezone
 
 
-
 class User(AbstractUser):
     ROLE_CHOICES = [
         ('READER', 'Reader'),
@@ -22,6 +21,7 @@ class User(AbstractUser):
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
+
     def __str__(self):
         return f"{self.email} ({self.role})"
 
@@ -43,23 +43,25 @@ class Profile(models.Model):
     bio = models.TextField(blank=True, null=True)
     avatar = models.ImageField(upload_to="avatars/", blank=True, null=True)
 
+    # поле подписки ДОЛЖНО быть внутри модели
+    subscription_until = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="Подписка действует до",
+    )
+
     def __str__(self) -> str:
         return f"Profile of {getattr(self.user, 'email', self.user.pk)}"
 
+    @property
+    def has_active_subscription(self) -> bool:
+        """У пользователя активная подписка?"""
+        if not self.subscription_until:
+            return False
+        return self.subscription_until >= timezone.localdate()
 
-subscription_until = models.DateField(
-    null=True, blank=True,
-    verbose_name="Подписка действует до"
-)
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_profile_for_user(sender, instance, created, **kwargs):
     if created:
         Profile.objects.get_or_create(user=instance)
-
-@property
-def has_active_subscription(self) -> bool:
-    """У пользователя активная подписка?"""
-    if not self.subscription_until:
-        return False
-    return self.subscription_until >= timezone.localdate()

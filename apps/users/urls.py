@@ -1,5 +1,5 @@
-from django.urls import path
 from django.contrib.auth import views as auth_views
+from django.urls import path
 
 from . import views
 
@@ -18,10 +18,12 @@ urlpatterns = [
         auth_views.LogoutView.as_view(next_page="home"),
         name="logout",
     ),
-    # Регистрация (твоя вьюха)
+    # Регистрация
     path("register/", views.RegisterView.as_view(), name="register"),
-    # Профиль (твоя вьюха)
+    # Профиль
     path("profile/", views.ProfileView.as_view(), name="profile"),
+
+    # Подписка (заглушки)
     path("subscribe/fake-checkout/", views.fake_checkout, name="fake_checkout"),
     path("subscribe/", views.subscribe_placeholder, name="subscribe"),
 ]

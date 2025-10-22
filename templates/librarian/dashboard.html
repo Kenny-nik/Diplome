@@ -1,68 +1,93 @@
 {% extends "base.html" %}
+
 {% block title %}Панель библиотекаря{% endblock %}
+
 {% block content %}
-<h1 class="mb-4">Панель библиотекаря</h1>
+<div class="container">
+  <h2 class="mb-4">Панель библиотекаря</h2>
 
-<div class="row g-3 mb-4">
-  <div class="col-sm-6 col-lg-3">
-    <div class="card h-100">
-      <div class="card-body">
-        <div class="fw-bold text-muted">Пользователи</div>
-        <div class="display-6">{{ total_users }}</div>
-        <div class="text-success">Активные: {{ active_users }}</div>
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-md-6">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <div class="text-soft">Пользователи</div>
+              <div class="display-6 fw-bold mt-1">{{ users_count|default:0 }}</div>
+              <div class="small text-soft mt-1">Активные: {{ active_users|default:0 }}</div>
+            </div>
+            <i class="fa fa-users fa-2x text-soft"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-6">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <div class="text-soft">Выдачи</div>
+              <div class="display-6 fw-bold mt-1">{{ loans_count|default:0 }}</div>
+              <div class="small text-soft mt-1">
+                Активные: {{ active_loans|default:0 }} • Просрочены: {{ overdue_loans|default:0 }}
+              </div>
+            </div>
+            <i class="fa fa-book fa-2x text-soft"></i>
+          </div>
+        </div>
       </div>
     </div>
   </div>
-  <div class="col-sm-6 col-lg-3">
-    <div class="card h-100">
-      <div class="card-body">
-        <div class="fw-bold text-muted">Выдачи</div>
-        <div class="display-6">{{ total_loans }}</div>
-        <div class="text-primary">Активные: {{ active_loans }}</div>
-        <div class="text-danger">Просрочены: {{ overdue_loans }}</div>
+
+  <div class="d-flex gap-2 mb-3">
+    <a href="{% url 'librarian:users' %}" class="btn btn-outline-primary">Пользователи</a>
+    <a href="{% url 'librarian:loans' %}" class="btn btn-outline-primary">Выдачи книг</a>
+  </div>
+
+  <h5 class="mb-3">Последние выдачи</h5>
+  <div class="card shadow-sm">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-sm align-middle mb-0">
+          <thead>
+            <tr>
+              <th class="px-3">Дата</th>
+              <th>Книга</th>
+              <th>Пользователь</th>
+              <th>Срок до</th>
+              <th class="px-3">Статус</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for loan in last_loans %}
+            <tr>
+              <td class="px-3">{{ loan.loan_date|date:"d.m.Y" }}</td>
+              <td>
+                <a href="{% url 'books:book_detail' loan.book_id %}">{{ loan.book.title }}</a>
+              </td>
+              <td class="text">{{ loan.user.email }}</td>
+              <td>{{ loan.due_date|date:"d.m.Y" }}</td>
+              <td class="px-3">
+                {% if loan.return_date %}
+                  <span class="badge bg-success">Возвращена</span>
+                {% else %}
+                  {% if loan.is_overdue %}
+                    <span class="badge bg-danger">Просрочена</span>
+                  {% else %}
+                    <span class="badge bg-primary">Активна</span>
+                  {% endif %}
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td class="px-3" colspan="5" class="text-soft">Нет данных</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
-</div>
 
-<div class="d-flex gap-2 mb-3">
-  <a class="btn btn-outline-primary" href="{% url 'librarian:users' %}">Пользователи</a>
-  <a class="btn btn-outline-primary" href="{% url 'librarian:loans' %}">Выдачи книг</a>
-</div>
-
-<h5 class="mt-4 mb-2">Последние выдачи</h5>
-<div class="table-responsive">
-  <table class="table table-sm align-middle">
-    <thead>
-      <tr>
-        <th>Дата</th>
-        <th>Книга</th>
-        <th>Пользователь</th>
-        <th>Срок до</th>
-        <th>Статус</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for l in recent_loans %}
-        <tr>
-          <td>{{ l.loan_date|date:"d.m.Y" }}</td>
-          <td><a href="{% url 'books:book_detail' l.book.pk %}">{{ l.book.title }}</a></td>
-          <td>{{ l.user.email|default:l.user.username }}</td>
-          <td>{{ l.due_date|date:"d.m.Y" }}</td>
-          <td>
-            {% if l.return_date %}
-              <span class="badge bg-success">Возвращена</span>
-            {% elif l.due_date < today %}
-              <span class="badge bg-danger">Просрочена</span>
-            {% else %}
-              <span class="badge bg-primary">Активна</span>
-            {% endif %}
-          </td>
-        </tr>
-      {% empty %}
-        <tr><td colspan="5" class="text-muted">Нет данных</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
 </div>
 {% endblock %}

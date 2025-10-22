@@ -17,7 +17,6 @@ env = environ.Env(
     JWT_SECRET_KEY=(str, ""),
 )
 
-# Загружаем .env из корня проекта
 environ.Env.read_env(BASE_DIR / ".env")
 
 # --- Базовые настройки ---
@@ -65,7 +64,7 @@ INSTALLED_APPS = [
     "django_filters",
     "drf_spectacular",
 
-    # Local apps (каждое приложение ровно один раз!)
+    # Local apps
     "apps.users",
     "apps.books",
     "apps.loans",
@@ -75,7 +74,7 @@ INSTALLED_APPS = [
 # --- Middleware ---
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "corsheaders.middleware.CorsMiddleware",   # должно быть выше CommonMiddleware
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -118,7 +117,7 @@ LOGOUT_REDIRECT_URL = "/"
 LOGIN_URL = "/login/"
 
 # --- Сессии ---
-SESSION_COOKIE_AGE = 60 * 60 * 24 * 14  # 2 недели
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 14
 SESSION_SAVE_EVERY_REQUEST = True
 
 # --- Шаблоны ---
@@ -133,12 +132,12 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "apps.users.context_processors.subscription",
             ],
         },
     },
 ]
 
-# --- Статика и медиа ---
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
@@ -146,10 +145,8 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# --- Прочее ---
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 ROOT_URLCONF = "config.urls"
 
-# (опционально, если требуется явная TZ)
 USE_TZ = True
 TIME_ZONE = "UTC"

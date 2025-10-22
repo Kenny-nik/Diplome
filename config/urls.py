@@ -11,7 +11,7 @@ urlpatterns = [
     # Админка
     path("admin/", admin.site.urls),
 
-    # Встроенные auth-url'ы Django (оставлено как было у вас)
+    # Встроенные auth-url'ы Django
     path("login/", include("django.contrib.auth.urls")),
 
     # Веб-приложения
@@ -27,7 +27,7 @@ urlpatterns = [
         "librarian/",
         include(("apps.librarian.urls", "librarian"), namespace="librarian"),
     ),
-    path("loans/", include(("apps.loans.urls", "loans"))),  # без namespace, если не нужен
+    path("loans/", include(("apps.loans.urls", "loans"))),
 
     # API
     path("api/v1/books/", include("apps.books.api_urls")),

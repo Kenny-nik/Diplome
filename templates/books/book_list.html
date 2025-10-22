@@ -1,13 +1,18 @@
 {% extends "base.html" %}
 {% load static %}
+
 {% block title %}Каталог книг{% endblock %}
 
 {% block content %}
 <div class="container">
-
   <h2 class="mb-3">Каталог книг</h2>
 
-  <!-- ФИЛЬТРЫ -->
+  <style>
+    /* чтобы stretched-link не перекрывал кнопки */
+    .card.position-relative .stretched-link{z-index:1}
+    .card.position-relative .btn{position:relative; z-index:2}
+  </style>
+
   <form class="row g-2 align-items-end mb-3" method="get">
     <div class="col-12 col-md-3">
       <label class="form-label">Жанр</label>
@@ -27,24 +32,100 @@
       <input class="form-control" type="text" name="q" placeholder="Поиск по названию" value="{{ current.q }}">
     </div>
     <div class="col-12 col-md-2 d-flex gap-2">
-      <button class="btn btn-primary flex-fill" type="submit"><i class="fa fa-filter me-1"></i>Фильтровать</button>
+      <button class="btn btn-primary flex-fill" type="submit">Фильтровать</button>
       <a class="btn btn-outline-secondary" href="{% url 'books:book_list' %}">Сброс</a>
     </div>
   </form>
 
-  {# Определяем has_premium по дате #}
-  {% now "Y-m-d" as today_str %}
-  {% with sub_str=user.profile.subscription_until|date:"Y-m-d" %}
-    {% if sub_str and sub_str >= today_str %}
-      {% with True as has_premium %}
-        {% include "partials/_book_grid.html" %}
-      {% endwith %}
-    {% else %}
-      {% with False as has_premium %}
-        {% include "partials/_book_grid.html" %}
-      {% endwith %}
-    {% endif %}
-  {% endwith %}
+  {% if page_obj.object_list %}
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+      {% for book in page_obj.object_list %}
+        <div class="col">
+          <div class="card h-100 book-card p-3 position-relative">
+            <div class="cover-4x6 mb-3 position-relative">
+              {% if book.is_premium %}<div class="premium-badge">Премиум</div>{% endif %}
+              {% if book.preferred_cover %}
+                <img src="{{ book.preferred_cover }}" alt="{{ book.title }}">
+              {% else %}
+                <img src="{% static 'img/cover-placeholder.png' %}" alt="{{ book.title }}">
+              {% endif %}
+            </div>
 
+            <div class="fw-semibold text-truncate" title="{{ book.title }}">
+              <a class="stretched-link text-decoration-none" href="{% url 'books:book_detail' book.pk %}">{{ book.title }}</a>
+            </div>
+            <div class="small text-soft text-truncate mb-2" title="{{ book.author }}">{{ book.author }}</div>
+
+            <div class="mb-3">
+              <span class="badge bg-warning text-dark">★ {{ book.rating|floatformat:1 }}</span>
+              <span class="badge bg-secondary ms-1">В наличии: {{ book.available_copies|default:0 }}</span>
+            </div>
+
+            {% now "Y-m-d" as today_str %}
+            {% with sub_str=user.profile.subscription_until|date:"Y-m-d" %}
+              {% if user.is_authenticated and not user.is_librarian %}
+                {% if book.is_premium %}
+                  {% if not sub_str or sub_str < today_str %}
+                    <button class="btn btn-secondary w-100" disabled>Только по подписке</button>
+                    <button type="button" class="btn btn-outline-primary w-100 mt-2 js-open-subscribe">Оформить</button>
+                  {% else %}
+                    <form method="post" action="{% url 'books:book_borrow' book.pk %}" class="mt-auto">
+                      {% csrf_token %}
+                      <button class="btn btn-primary w-100"
+                              {% if not book.is_available or book.available_copies|default:0 < 1 %}disabled{% endif %}>
+                        Добавить
+                      </button>
+                    </form>
+                  {% endif %}
+                {% else %}
+                  <form method="post" action="{% url 'books:book_borrow' book.pk %}" class="mt-auto">
+                    {% csrf_token %}
+                    <button class="btn btn-primary w-100"
+                            {% if not book.is_available or book.available_copies|default:0 < 1 %}disabled{% endif %}>
+                      Добавить
+                    </button>
+                  </form>
+                {% endif %}
+              {% endif %}
+            {% endwith %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    {% if is_paginated %}
+      <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+          {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&genre={{ current.genre }}&author={{ current.author }}&q={{ current.q }}">Назад</a></li>
+          {% else %}<li class="page-item disabled"><span class="page-link">Назад</span></li>{% endif %}
+          <li class="page-item disabled"><span class="page-link">Стр. {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span></li>
+          {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&genre={{ current.genre }}&author={{ current.author }}&q={{ current.q }}">Вперёд</a></li>
+          {% else %}<li class="page-item disabled"><span class="page-link">Вперёд</span></li>{% endif %}
+        </ul>
+      </nav>
+    {% endif %}
+  {% else %}
+    <div class="alert alert-info">Книги не найдены.</div>
+  {% endif %}
 </div>
+
+{% include "partials/_subscribe_modal.html" %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  // Кнопка «Оформить» открывает модалку оформления подписки
+  document.querySelectorAll('.js-open-subscribe').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const modalEl = document.getElementById('subscribeModal');
+      if (!modalEl || !window.bootstrap) return;
+      const nextInput = modalEl.querySelector('form input[name="next"]');
+      if (nextInput) nextInput.value = window.location.pathname + window.location.search;
+      const modal = new bootstrap.Modal(modalEl);
+      modal.show();
+    });
+  });
+});
+</script>
 {% endblock %}

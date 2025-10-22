@@ -1,77 +1,77 @@
+{# templates/librarian/loans.html #}
 {% extends "base.html" %}
-{% block title %}Выдачи — библиотекарь{% endblock %}
+{% block title %}Выдачи книг{% endblock %}
+
 {% block content %}
-<h1 class="mb-4">Выдачи книг</h1>
+<div class="container">
+  <h2 class="mb-3">Выдачи книг</h2>
 
-<form class="row g-2 mb-3" method="get">
-  <div class="col-md-6">
-    <input class="form-control" type="search" name="q" placeholder="Поиск по книге или пользователю" value="{{ request.GET.q }}">
-  </div>
-  <div class="col-md-4">
-    <select class="form-select" name="status">
-      <option value="">Любой статус</option>
-      <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Активные</option>
-      <option value="overdue" {% if request.GET.status == 'overdue' %}selected{% endif %}>Просроченные</option>
-      <option value="returned" {% if request.GET.status == 'returned' %}selected{% endif %}>Возвращённые</option>
-    </select>
-  </div>
-  <div class="col-md-2 d-grid">
-    <button class="btn btn-primary" type="submit">Фильтровать</button>
-  </div>
-</form>
+  <form method="get" class="row g-2 mb-3">
+    <div class="col-12 col-lg-3">
+      <select class="form-select" name="status">
+        <option value="">Все</option>
+        <option value="active" {% if request.GET.status == "active" %}selected{% endif %}>Активные</option>
+        <option value="returned" {% if request.GET.status == "returned" %}selected{% endif %}>Возвращённые</option>
+      </select>
+    </div>
+    <div class="col-12 col-lg-2 d-grid">
+      <button class="btn btn-primary">Фильтровать</button>
+    </div>
+  </form>
 
-<div class="table-responsive">
-  <table class="table table-sm align-middle">
-    <thead>
-      <tr>
-        <th>Дата выдачи</th>
-        <th>Книга</th>
-        <th>Пользователь</th>
-        <th>До</th>
-        <th>Возврат</th>
-        <th>Статус</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for l in loans %}
-        <tr>
-          <td>{{ l.loan_date|date:"d.m.Y" }}</td>
-          <td><a href="{% url 'books:book_detail' l.book.pk %}">{{ l.book.title }}</a></td>
-          <td>{{ l.user.email|default:l.user.username }}</td>
-          <td>{{ l.due_date|date:"d.m.Y" }}</td>
-          <td>{% if l.return_date %}{{ l.return_date|date:"d.m.Y" }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
-          <td>
-            {% if l.return_date %}
-              <span class="badge bg-success">Возвращена</span>
-            {% elif l.due_date < today %}
-              <span class="badge bg-danger">Просрочена</span>
-            {% else %}
-              <span class="badge bg-primary">Активна</span>
-            {% endif %}
-          </td>
-        </tr>
-      {% empty %}
-        <tr><td colspan="6" class="text-muted">Ничего не найдено</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="card shadow-sm">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-sm align-middle mb-0">
+          <thead>
+            <tr>
+              <th class="px-3">Дата</th>
+              <th>Книга</th>
+              <th>Пользователь</th>
+              <th>Срок до</th>
+              <th class="px-3">Статус</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for loan in loans %}
+            <tr>
+              <td class="px-3">{{ loan.loan_date|date:"d.m.Y" }}</td>
+              <td><a href="{% url 'books:book_detail' loan.book_id %}">{{ loan.book.title }}</a></td>
+              <td class="text">{{ loan.user.email }}</td>
+              <td>{{ loan.due_date|date:"d.m.Y" }}</td>
+              <td class="px-3">
+                {% if loan.return_date %}
+                  <span class="badge bg-success">Возвращена</span>
+                {% else %}
+                  {% if loan.is_overdue %}
+                    <span class="badge bg-danger">Просрочена</span>
+                  {% else %}
+                    <span class="badge bg-primary">Активна</span>
+                  {% endif %}
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td class="px-3" colspan="5" class="text-soft">Нет выдач</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  {% if is_paginated %}
+    <nav class="mt-3">
+      <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+          <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&status={{ request.GET.status }}">Назад</a></li>
+        {% else %}<li class="page-item disabled"><span class="page-link">Назад</span></li>{% endif %}
+        <li class="page-item disabled"><span class="page-link">Стр. {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span></li>
+        {% if page_obj.has_next %}
+          <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&status={{ request.GET.status }}">Вперёд</a></li>
+        {% else %}<li class="page-item disabled"><span class="page-link">Вперёд</span></li>{% endif %}
+      </ul>
+    </nav>
+  {% endif %}
 </div>
-
-{% if is_paginated %}
-<nav>
-  <ul class="pagination">
-    {% if page_obj.has_previous %}
-      <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode|default:'' }}">Назад</a></li>
-    {% else %}
-      <li class="page-item disabled"><span class="page-link">Назад</span></li>
-    {% endif %}
-    <li class="page-item disabled"><span class="page-link">Стр. {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span></li>
-    {% if page_obj.has_next %}
-      <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode|default:'' }}">Вперёд</a></li>
-    {% else %}
-      <li class="page-item disabled"><span class="page-link">Вперёд</span></li>
-    {% endif %}
-  </ul>
-</nav>
-{% endif %}
 {% endblock %}

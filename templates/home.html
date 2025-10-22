@@ -1,80 +1,87 @@
 {% extends "base.html" %}
 {% load static %}
+
 {% block title %}Главная — Библиотека{% endblock %}
 
 {% block content %}
+<div class="container">
 
-{# ===== Hero: описание слева + баннер ===== #}
-<div class="container mb-4">
-  <div class="row g-4 align-items-stretch">
-    <div class="col-12 col-lg-8">
-      <div class="card h-100 p-4">
-        <h1 class="mb-2 fw-bold">Читай больше. Поддерживай проект. Открывай новое.</h1>
-        <p class="lead text-muted">Эксклюзивные издания для подписчиков, удобная полка «Мои книги» и подборки каждую неделю.</p>
-        <ul class="mb-3">
-          <li>Единый визуальный стиль и плавные анимации</li>
-          <li>Премиум-книги — для подписчиков</li>
-          <li>Быстрый доступ: взять/вернуть в один клик</li>
-        </ul>
-        <div class="d-flex gap-2">
-          <a href="{% url 'books:book_list' %}" class="btn btn-primary"><i class="fa fa-compass me-2"></i>Каталог</a>
-          {% if request.user.is_authenticated %}
-            <a href="{% url 'users:profile' %}" class="btn btn-outline-secondary"><i class="fa fa-user me-2"></i>Профиль</a>
-          {% else %}
-            <a href="{% url 'users:register' %}" class="btn btn-outline-secondary"><i class="fa fa-user-plus me-2"></i>Регистрация</a>
-          {% endif %}
-        </div>
-      </div>
+  <!-- HERO -->
+  <div class="row align-items-center g-4 mb-4">
+    <div class="col-12 col-lg-7">
+      <h1 class="mb-3 fw-bold">Читай. Выбирай. Поддерживай 📚</h1>
+      <p class="lead text">
+        В нашей онлайн-библиотеке — сотни книг на любой вкус.
+        Бесплатно берите доступные издания, а <strong>премиум-подписка</strong> за 199&nbsp;₽/мес откроет доступ к эксклюзивам и поможет развивать проект.
+      </p>
+      <p class="text mb-0">Спасибо, что вы с нами — приятного чтения!</p>
     </div>
-    <div class="col-12 col-lg-4">
-      <div class="card h-100 p-4 d-flex justify-content-center text-center" style="border:2px dashed rgba(255,255,255,.15)">
-        <div class="text-muted">здесь могла быть ваша реклама</div>
+
+    <div class="col-12 col-lg-5">
+      <div class="ad-box">
+        <div class="ad-text">здесь могла быть ваша реклама</div>
       </div>
     </div>
   </div>
+
+  <!-- Хиты недели -->
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h2 class="h4 m-0">Хиты недели</h2>
+    <a class="btn btn-sm btn-outline-primary" href="{% url 'books:book_list' %}">Каталог</a>
+  </div>
+
+  {% include "partials/_home_recommended_grid.html" %}
 </div>
 
-{# ===== Блок подписки ===== #}
-<div class="container mb-3">
-  {% if request.user.is_authenticated %}
-    {% now "Y-m-d" as today_str %}
-    {% with sub_str=request.user.profile.subscription_until|date:"Y-m-d" %}
-      {% if not sub_str or sub_str < today_str %}
-        <div class="card p-3">
-          <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
-            <div class="d-flex align-items-center gap-3">
-              <i class="fa-solid fa-crown text-warning fs-3"></i>
-              <div>
-                <div class="fw-bold">Оформите подписку на библиотеку — 199 ₽/мес</div>
-                <div class="text-muted small">Поддержите проект и получите доступ к эксклюзивным книгам</div>
-              </div>
-            </div>
-            <a class="btn btn-primary" href="{% url 'users:subscribe' %}">Оформить</a>
+<!-- МОДАЛКА ОФОРМЛЕНИЯ ПОДПИСКИ -->
+<div class="modal fade" id="subscribeModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Оформление подписки — 199 ₽/мес</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Номер карты</label>
+          <input class="form-control" placeholder="0000 0000 0000 0000">
+        </div>
+        <div class="row g-2">
+          <div class="col">
+            <label class="form-label">Срок</label>
+            <input class="form-control" placeholder="MM/YY">
+          </div>
+          <div class="col">
+            <label class="form-label">CVC</label>
+            <input class="form-control" placeholder="123">
           </div>
         </div>
-      {% endif %}
-    {% endwith %}
-  {% endif %}
-</div>
-
-{# ===== Хиты недели (ТОП-5) — единые обложки ===== #}
-<div class="container">
-  <div class="d-flex justify-content-between align-items-center mb-2">
-    <h2 class="mb-0">Хиты недели</h2>
-    <a href="{% url 'books:book_list' %}" class="btn btn-outline-secondary">Все книги</a>
+        <div class="form-text mt-2">
+          Демонстрация: реальных списаний не будет — подписку можно выдать через админку (поле <em>subscription_until</em>).
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary js-buy-subscription" data-bs-dismiss="modal">Купить</button>
+      </div>
+    </div>
   </div>
-
-  {% now "Y-m-d" as today_str %}
-  {% with sub_str=request.user.profile.subscription_until|date:"Y-m-d" %}
-    {% if sub_str and sub_str >= today_str %}
-      {% with True as has_premium %}
-        {% include "partials/_home_recommended_grid.html" %}
-      {% endwith %}
-    {% else %}
-      {% with False as has_premium %}
-        {% include "partials/_home_recommended_grid.html" %}
-      {% endwith %}
-    {% endif %}
-  {% endwith %}
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  // Кнопка "Купить"
+  document.querySelectorAll('.js-buy-subscription').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      alert('Подписка — демо. Выдайте её через админку: Users → Profile → subscription_until.');
+    });
+  });
+  // Открытие модалки с любых кнопок "Оформить"
+  document.querySelectorAll('.js-open-subscribe').forEach(function(b){
+    b.addEventListener('click', function(){
+      var m = document.getElementById('subscribeModal');
+      if (m) new bootstrap.Modal(m).show();
+    });
+  });
+});
+</script>
 {% endblock %}

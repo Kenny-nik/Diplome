@@ -1,20 +1,20 @@
+from datetime import timedelta
+
 from django.contrib import messages
 from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponseNotAllowed
 from django.shortcuts import redirect, render
-from django.views.generic import TemplateView, View
-from django.utils import timezone
-from datetime import timedelta
 from django.urls import reverse
+from django.utils import timezone
+from django.views.generic import TemplateView, View
 
 from .forms import (
     AvatarForm,
     CustomUserCreationForm,
     ProfileForm,
-    StyledPasswordChangeForm as PasswordChangeForm,
+    StyledPasswordChangeForm as PasswordChangeForm,  # используем стилизованную форму
 )
 from .models import Profile
 
@@ -32,7 +32,8 @@ class RegisterView(View):
             user = form.save()
             login(request, user)
             messages.success(request, "Вы успешно зарегистрированы!")
-            return redirect("profile")
+            # важно: используем namespaced URL
+            return redirect("users:profile")
         messages.error(request, "Пожалуйста, исправьте ошибки в форме.")
         return render(request, self.template_name, {"form": form})
 
@@ -52,7 +53,7 @@ class CompleteProfileView(LoginRequiredMixin, View):
         if form.is_valid():
             form.save()
             messages.success(request, "Профиль заполнен.")
-            return redirect("profile")
+            return redirect("users:profile")
         return render(request, self.template_name, {"form": form})
 
 
@@ -84,7 +85,7 @@ class ProfileView(LoginRequiredMixin, TemplateView):
             if pf.is_valid():
                 pf.save()
                 messages.success(request, "Профиль обновлён.")
-                return redirect("profile")
+                return redirect("users:profile")
             ctx = {
                 "profile_form": pf,
                 "avatar_form": AvatarForm(instance=profile),
@@ -97,7 +98,7 @@ class ProfileView(LoginRequiredMixin, TemplateView):
             if af.is_valid():
                 af.save()
                 messages.success(request, "Аватар обновлён.")
-                return redirect("profile")
+                return redirect("users:profile")
             ctx = {
                 "profile_form": ProfileForm(instance=request.user),
                 "avatar_form": af,
@@ -112,7 +113,7 @@ class ProfileView(LoginRequiredMixin, TemplateView):
                 # чтобы не разлогинило после смены пароля
                 update_session_auth_hash(request, pwf.user)
                 messages.success(request, "Пароль изменён.")
-                return redirect("profile")
+                return redirect("users:profile")
             ctx = {
                 "profile_form": ProfileForm(instance=request.user),
                 "avatar_form": AvatarForm(instance=profile),
@@ -120,7 +121,8 @@ class ProfileView(LoginRequiredMixin, TemplateView):
             }
             return render(request, self.template_name, ctx)
 
-        return redirect("profile")
+        return redirect("users:profile")
+
 
 @login_required
 def fake_checkout(request):
@@ -143,6 +145,7 @@ def fake_checkout(request):
 
     next_url = request.POST.get("next") or reverse("home")
     return redirect(next_url)
+
 
 @login_required
 def subscribe_placeholder(request):
