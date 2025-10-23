@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Все выдачи{% endblock %}
+
+{% block content %}
+<h2>Все книги на выдаче</h2>
+<div class="row">
+    {% for loan in loans %}
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ loan.book.title }}</h5>
+                    <p class="card-text">
+                        Пользователь: {{ loan.user.email }}<br>
+                        Вернуть до: {{ loan.due_date|date:"d.m.Y" }}<br>
+                        Статус: {% if loan.is_returned %}Возвращена{% else %}Выдана{% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <p>Выдач пока нет.</p>
+    {% endfor %}
+</div>
+{% endblock %}

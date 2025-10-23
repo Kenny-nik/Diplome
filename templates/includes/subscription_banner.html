@@ -1,0 +1,12 @@
+{% load static %}
+{% if request.user.is_authenticated and not request.user.profile.has_active_subscription %}
+<div class="alert alert-info d-flex align-items-center justify-content-between" role="alert">
+  <div>
+    <strong>Оформите подписку на библиотеку</strong> — так вы поддержите проект и получите доступ к эксклюзивным книгам.
+    <span class="ms-2 fw-bold">199 ₽/мес.</span>
+  </div>
+  <button class="btn btn-primary ms-3" data-bs-toggle="modal" data-bs-target="#subscribeModal">
+    Оформить
+  </button>
+</div>
+{% endif %}

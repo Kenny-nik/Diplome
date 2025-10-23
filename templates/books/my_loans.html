@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Мои книги{% endblock %}
+
+{% block content %}
+<h2>Мои книги</h2>
+<div class="row">
+    {% for loan in loans %}
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ loan.book.title }}</h5>
+                    <p class="card-text">
+                        Автор: {{ loan.book.author }}<br>
+                        Вернуть до: {{ loan.due_date|date:"d.m.Y" }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <p>Вы пока не брали книги.</p>
+    {% endfor %}
+</div>
+{% endblock %}

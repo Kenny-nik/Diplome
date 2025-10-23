@@ -1,0 +1,84 @@
+{# templates/librarian/users.html #}
+{% extends "base.html" %}
+{% block title %}Пользователи{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h2 class="mb-3">Пользователи</h2>
+
+  <form method="get" class="row g-2 mb-3">
+    <div class="col-12 col-lg-4">
+      <input class="form-control" name="q" value="{{ request.GET.q }}" placeholder="Поиск по имени/почте">
+    </div>
+    <div class="col-6 col-lg-3">
+      <select class="form-select" name="active">
+        <option value="">Активность</option>
+        <option value="yes" {% if request.GET.active == "yes" %}selected{% endif %}>Активен</option>
+        <option value="no" {% if request.GET.active == "no" %}selected{% endif %}>Неактивен</option>
+      </select>
+    </div>
+    <div class="col-6 col-lg-3">
+      <select class="form-select" name="staff">
+        <option value="">Статус персонала</option>
+        <option value="yes" {% if request.GET.staff == "yes" %}selected{% endif %}>Staff</option>
+        <option value="no" {% if request.GET.staff == "no" %}selected{% endif %}>Не staff</option>
+      </select>
+    </div>
+    <div class="col-12 col-lg-2 d-grid">
+      <button class="btn btn-primary">Фильтровать</button>
+    </div>
+  </form>
+
+  <div class="card shadow-sm">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th class="px-3">Логин/Email</th>
+              <th>Активен</th>
+              <th>Staff</th>
+              <th>Superuser</th>
+              <th>Последний вход</th>
+              <th class="px-3">Дата регистрации</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for u in users %}
+            <tr>
+              <td class="px-3">
+                <div class="fw-semibold">{{ u.email|default:u.username }}</div>
+                {% if u.first_name or u.last_name %}
+                  <div class="small text">{{ u.get_full_name }}</div>
+                {% endif %}
+              </td>
+              <td>{% if u.is_active %}<span class="badge bg-success">да</span>{% else %}<span class="badge bg-secondary">нет</span>{% endif %}</td>
+              <td>{% if u.is_staff %}<span class="badge bg-primary">да</span>{% else %}<span class="badge bg-secondary">нет</span>{% endif %}</td>
+              <td>{% if u.is_superuser %}<span class="badge bg-danger">да</span>{% else %}<span class="badge bg-secondary">нет</span>{% endif %}</td>
+              <td>{{ u.last_login|date:"d.m.Y H:i" }}</td>
+              <td class="px-3">{{ u.date_joined|date:"d.m.Y H:i" }}</td>
+            </tr>
+          {% empty %}
+            <tr><td class="px-3" colspan="6" class="text-soft">Нет пользователей</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  {% if is_paginated %}
+    <nav class="mt-3">
+      <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+          <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ request.GET.q }}&active={{ request.GET.active }}&staff={{ request.GET.staff }}">Назад</a></li>
+        {% else %}<li class="page-item disabled"><span class="page-link">Назад</span></li>{% endif %}
+        <li class="page-item disabled"><span class="page-link">Стр. {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span></li>
+        {% if page_obj.has_next %}
+          <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ request.GET.q }}&active={{ request.GET.active }}&staff={{ request.GET.staff }}">Вперёд</a></li>
+        {% else %}<li class="page-item disabled"><span class="page-link">Вперёд</span></li>{% endif %}
+      </ul>
+    </nav>
+  {% endif %}
+</div>
+{% endblock %}

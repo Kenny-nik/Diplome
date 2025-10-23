@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'books/books.css' %}">
+{% load static %}
+
+{% block title %}Мои книги{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h2 class="mb-3">Мои книги</h2>
+
+  {% if loans %}
+    <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-3">
+      {% for loan in loans %}
+        {% with book=loan.book %}
+        <div class="col">
+          <div class="card h-100 book-card">
+            <div class="ratio ratio-3x4 bg-light">
+              {% if book.cover_url %}
+                <img src="{{ book.cover_url }}" class="card-img-top object-fit-cover w-100 h-100" alt="{{ book.title }}">
+              {% else %}
+                {% if book.genre == "SCI_FI" %}
+                  <img src="{% static 'img/genres/SCI_FI.svg' %}" class="card-img-top object-fit-cover w-100 h-100" alt="{{ book.title }}">
+                {% elif book.genre == "MYSTERY" %}
+                  <img src="{% static 'img/genres/MYSTERY.svg' %}" class="card-img-top object-fit-cover w-100 h-100" alt="{{ book.title }}">
+                {% elif book.genre == "ROMANCE" %}
+                  <img src="{% static 'img/genres/ROMANCE.svg' %}" class="card-img-top object-fit-cover w-100 h-100" alt="{{ book.title }}">
+                {% elif book.genre == "HISTORY" %}
+                  <img src="{% static 'img/genres/HISTORY.svg' %}" class="card-img-top object-fit-cover w-100 h-100" alt="{{ book.title }}">
+                {% elif book.genre == "SCIENCE" %}
+                  <img src="{% static 'img/genres/SCIENCE.svg' %}" class="card-img-top object-fit-cover w-100 h-100" alt="{{ book.title }}">
+                {% elif book.genre == "TECH" %}
+                  <img src="{% static 'img/genres/TECH.svg' %}" class="card-img-top object-fit-cover w-100 h-100" alt="{{ book.title }}">
+                {% else %}
+                  <img src="{% static 'img/genres/FICTION.svg' %}" class="card-img-top object-fit-cover w-100 h-100" alt="{{ book.title }}">
+                {% endif %}
+              {% endif %}
+            </div>
+            <div class="card-body p-2 d-flex flex-column">
+              <div class="fw-semibold text-truncate" title="{{ book.title }}">{{ book.title }}</div>
+              <div class="small text-muted text-truncate" title="{{ book.author }}">{{ book.author }}</div>
+              <div class="small text-muted">Взята: {{ loan.loan_date|date:"d.m.Y" }}</div>
+
+              <form method="post" action="{% url 'book_remove' book.pk %}" class="mt-auto">
+                {% csrf_token %}
+                <button class="btn btn-sm btn-outline-danger w-100">Убрать</button>
+              </form>
+            </div>
+          </div>
+        </div>
+        {% endwith %}
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="alert alert-info">У вас пока нет активных книг.</div>
+  {% endif %}
+</div>
+{% endblock %}

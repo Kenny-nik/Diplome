@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Вход{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+          <i class="fas fa-right-to-bracket me-2"></i> Вход
+        </div>
+
+        <div class="card-body">
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger mb-3">
+              {{ form.non_field_errors }}
+            </div>
+          {% endif %}
+
+          <form method="post" action="">
+            {% csrf_token %}
+
+            <!-- Логин / Email -->
+            <div class="mb-3">
+              <label class="form-label" for="id_username">Email или логин</label>
+              <input
+                type="text"
+                name="username"
+                id="id_username"
+                class="form-control"
+                placeholder="Введите ваш email или логин"
+                value="{{ form.username.value|default_if_none:'' }}"
+                autocomplete="username"
+                required
+              />
+              {% if form.username.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.username.errors|join:", " }}
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- Пароль -->
+            <div class="mb-3">
+              <label class="form-label" for="id_password">Пароль</label>
+              <input
+                type="password"
+                name="password"
+                id="id_password"
+                class="form-control"
+                placeholder="Введите пароль"
+                autocomplete="current-password"
+                required
+              />
+              {% if form.password.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.password.errors|join:", " }}
+                </div>
+              {% endif %}
+            </div>
+
+            {% if next %}
+              <input type="hidden" name="next" value="{{ next }}">
+            {% endif %}
+
+            <div class="d-grid gap-2">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-sign-in-alt me-1"></i> Войти
+              </button>
+            </div>
+          </form>
+
+          <div class="mt-3 text-center">
+            <p>Нет аккаунта? <a href="{% url 'users:register' %}">Зарегистрируйтесь</a></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

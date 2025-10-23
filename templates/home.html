@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Главная — Библиотека{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <!-- HERO -->
+  <div class="row align-items-center g-4 mb-4">
+    <div class="col-12 col-lg-7">
+      <h1 class="mb-3 fw-bold">Читай. Выбирай. Поддерживай 📚</h1>
+      <p class="lead text">
+        В нашей онлайн-библиотеке — сотни книг на любой вкус.
+        Бесплатно берите доступные издания, а <strong>премиум-подписка</strong> за 199&nbsp;₽/мес откроет доступ к эксклюзивам и поможет развивать проект.
+      </p>
+      <p class="text mb-0">Спасибо, что вы с нами — приятного чтения!</p>
+    </div>
+
+    <div class="col-12 col-lg-5">
+      <div class="ad-box">
+        <div class="ad-text">здесь могла быть ваша реклама</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Хиты недели -->
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h2 class="h4 m-0">Хиты недели</h2>
+    <a class="btn btn-sm btn-outline-primary" href="{% url 'books:book_list' %}">Каталог</a>
+  </div>
+
+  {% include "partials/_home_recommended_grid.html" %}
+</div>
+
+<!-- МОДАЛКА ОФОРМЛЕНИЯ ПОДПИСКИ -->
+<div class="modal fade" id="subscribeModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Оформление подписки — 199 ₽/мес</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Номер карты</label>
+          <input class="form-control" placeholder="0000 0000 0000 0000">
+        </div>
+        <div class="row g-2">
+          <div class="col">
+            <label class="form-label">Срок</label>
+            <input class="form-control" placeholder="MM/YY">
+          </div>
+          <div class="col">
+            <label class="form-label">CVC</label>
+            <input class="form-control" placeholder="123">
+          </div>
+        </div>
+        <div class="form-text mt-2">
+          Демонстрация: реальных списаний не будет — подписку можно выдать через админку (поле <em>subscription_until</em>).
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary js-buy-subscription" data-bs-dismiss="modal">Купить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  // Кнопка "Купить"
+  document.querySelectorAll('.js-buy-subscription').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      alert('Подписка — демо. Выдайте её через админку: Users → Profile → subscription_until.');
+    });
+  });
+  // Открытие модалки с любых кнопок "Оформить"
+  document.querySelectorAll('.js-open-subscribe').forEach(function(b){
+    b.addEventListener('click', function(){
+      var m = document.getElementById('subscribeModal');
+      if (m) new bootstrap.Modal(m).show();
+    });
+  });
+});
+</script>
+{% endblock %}

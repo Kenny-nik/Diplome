@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Оформление подписки{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 760px;">
+  <h2 class="mb-3">Подписка на библиотеку</h2>
+
+  <div class="card">
+    <div class="card-body">
+      <p class="text-muted mb-3">
+        Оформите подписку и получите доступ к эксклюзивным книгам. Стоимость — <b>199 ₽/мес</b>.
+        Это демо-вариант: данные карты никуда не отправляются и деньги не списываются.
+      </p>
+
+      <form method="post" class="row g-3">
+        {% csrf_token %}
+
+        <div class="col-12">
+          <label class="form-label">Номер карты</label>
+          <input class="form-control" placeholder="4111 1111 1111 1111">
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Месяцев</label>
+          <select class="form-select" name="months">
+            <option value="1" selected>1</option>
+            <option value="3">3</option>
+            <option value="6">6</option>
+            <option value="12">12</option>
+          </select>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Срок (ММ/ГГ)</label>
+          <input class="form-control" placeholder="12/29">
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">CVC</label>
+          <input class="form-control" placeholder="123">
+        </div>
+
+        <div class="col-12">
+          <button class="btn btn-primary w-100">Оплатить 199 ₽/мес</button>
+        </div>
+
+        <div class="form-text">
+          Нажатие на «Оплатить» просто активирует подписку — без реальных платежей.
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load static %}
+{% load cover_tags %}
+
+{% block title %}Мои книги{% endblock %}
+
+{% block content %}
+<style>
+  .book-card{transition:transform .15s ease,box-shadow .15s ease;border-radius:.75rem}
+  .book-card:hover{transform:translateY(-3px);box-shadow:0 10px 22px rgba(0,0,0,.12)}
+  .cover-4x6{position:relative;overflow:hidden;border-radius:.6rem;background:#0f172a;aspect-ratio:4/6}
+  .cover-4x6 img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center}
+</style>
+
+<div class="container">
+  <h2 class="mb-3">Мои книги</h2>
+
+  {% if loans %}
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
+      {% for loan in loans %}
+        {% with book=loan.book %}
+        <div class="col">
+          <div class="card h-100 p-3 book-card position-relative">
+            <a href="{% url 'books:book_detail' book.pk %}" class="stretched-link"></a>
+
+            <div class="cover-4x6 mb-3">
+              {% if book.preferred_cover %}
+                <img src="{{ book.preferred_cover }}" alt="{{ book.title }}">
+              {% else %}
+                {% cover_for_book book as cover_rel %}
+                <img src="{% static cover_rel %}" alt="{{ book.title }}">
+              {% endif %}
+            </div>
+
+            <div class="fw-semibold text-truncate" title="{{ book.title }}">{{ book.title }}</div>
+            <div class="small text-white-50 text-truncate" title="{{ book.author }}">{{ book.author }}</div>
+
+            <div class="mb-2 small text-white-50">До: {{ loan.due_date|date:"d.m.Y" }}</div>
+
+            <div class="mt-auto">
+              <form method="post" action="{% url 'books:book_return' book.pk %}">
+                {% csrf_token %}
+                <button class="btn btn-outline-danger w-100">Убрать</button>
+              </form>
+            </div>
+          </div>
+        </div>
+        {% endwith %}
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="alert alert-info">У вас пока нет активных книг.</div>
+  {% endif %}
+</div>
+{% endblock %}

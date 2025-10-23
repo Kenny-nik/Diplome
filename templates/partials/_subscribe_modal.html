@@ -1,0 +1,33 @@
+{% load static %}
+<div class="modal fade" id="subscribeModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background:#121829;border:1px solid rgba(255,255,255,.06)">
+      <div class="modal-header">
+        <h5 class="modal-title">Подписка — 199 ₽/мес</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label pay-label">Номер карты</label>
+          <input class="form-control" placeholder="0000 0000 0000 0000">
+        </div>
+        <div class="row g-3">
+          <div class="col-6">
+            <label class="form-label pay-label">Срок</label>
+            <input class="form-control" placeholder="MM/YY">
+          </div>
+          <div class="col-6">
+            <label class="form-label pay-label">CVC</label>
+            <input class="form-control" placeholder="123">
+          </div>
+        </div>
+        <div class="form-text mt-3">
+          Оплата учебная: деньги никуда не списываются. Подписку выдают через админку.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="fakePayBtn" class="btn btn-primary">Оплатить</button>
+      </div>
+    </div>
+  </div>
+</div>

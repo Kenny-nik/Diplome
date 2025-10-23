@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Регистрация{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 720px;">
+  <div class="card shadow-sm mt-4">
+    <div class="card-header d-flex align-items-center gap-2">
+      <i class="fas fa-user-plus"></i>
+      <strong>Регистрация</strong>
+    </div>
+    <div class="card-body">
+
+      {% if messages %}
+        {% for m in messages %}
+          <div class="alert alert-{{ m.tags }}">{{ m }}</div>
+        {% endfor %}
+      {% endif %}
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger mb-3">
+          {% for e in form.non_field_errors %}{{ e }}<br>{% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        <div class="mb-3">
+          <label class="form-label">Email</label>
+          {{ form.email }}
+          {% for e in form.email.errors %}
+            <div class="invalid-feedback d-block">{{ e }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Пароль</label>
+          {{ form.password1 }}
+          {% for e in form.password1.errors %}
+            <div class="invalid-feedback d-block">{{ e }}</div>
+          {% endfor %}
+          <div class="form-text">Пароль должен быть не короче 8 символов.</div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Подтверждение пароля</label>
+          {{ form.password2 }}
+          {% for e in form.password2.errors %}
+            <div class="invalid-feedback d-block">{{ e }}</div>
+          {% endfor %}
+        </div>
+
+        <button class="btn btn-primary w-100" type="submit">
+          <i class="fas fa-user-plus me-1"></i> Зарегистрироваться
+        </button>
+      </form>
+
+      <div class="text-center mt-3">
+        Уже есть аккаунт? <a href="{% url 'login' %}">Войти</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

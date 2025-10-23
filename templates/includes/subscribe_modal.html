@@ -1,0 +1,42 @@
+<div class="modal fade" id="subscribeModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form method="post" action="{% url 'users:fake_checkout' %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <div class="modal-header">
+          <h5 class="modal-title">Оплата подписки — 199 ₽/мес</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted mb-3">
+            Это демо-форма. Вводимые данные никуда не отправляются — оплата эмулируется.
+          </p>
+
+          <div class="mb-3">
+            <label class="form-label">Номер карты</label>
+            <input class="form-control" placeholder="0000 0000 0000 0000" autocomplete="off">
+          </div>
+          <div class="row g-3">
+            <div class="col-6">
+              <label class="form-label">Срок</label>
+              <input class="form-control" placeholder="MM/YY" autocomplete="off">
+            </div>
+            <div class="col-6">
+              <label class="form-label">CVC</label>
+              <input class="form-control" placeholder="CVC" autocomplete="off">
+            </div>
+          </div>
+
+          <div class="form-text mt-2">
+            Нажимая «Оплатить», вы активируете подписку на 30 дней (тестовая операция).
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+          <button type="submit" class="btn btn-primary">Оплатить 199 ₽</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,65 @@
+{% load static %}
+{% if recommended_books %}
+  <style>
+    /* чтобы stretched-link не перекрывал кнопки */
+    .card.position-relative .stretched-link{z-index:1}
+    .card.position-relative .btn{position:relative; z-index:2}
+  </style>
+
+  <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-4">
+    {% for book in recommended_books %}
+      <div class="col">
+        <div class="card h-100 book-card p-3 position-relative">
+          <a href="{% url 'books:book_detail' book.pk %}" class="stretched-link"></a>
+
+          <div class="cover-4x6 mb-3 position-relative">
+            {% if book.is_premium %}<div class="premium-badge">Премиум</div>{% endif %}
+            {% if book.preferred_cover %}
+              <img src="{{ book.preferred_cover }}" alt="{{ book.title }}">
+            {% else %}
+              <img src="{% static 'img/cover-placeholder.png' %}" alt="{{ book.title }}">
+            {% endif %}
+          </div>
+
+          <div class="fw-semibold text-truncate" title="{{ book.title }}">{{ book.title }}</div>
+          <div class="small text-soft text-truncate" title="{{ book.author }}">{{ book.author }}</div>
+
+          <div class="mt-2 mb-3">
+            <span class="badge bg-warning text-dark">★ {{ book.rating|floatformat:1 }}</span>
+            <span class="badge bg-secondary ms-1">В наличии: {{ book.available_copies|default:0 }}</span>
+          </div>
+
+          {% now "Y-m-d" as today_str %}
+          {% with sub_str=user.profile.subscription_until|date:"Y-m-d" %}
+            {% if user.is_authenticated and not user.is_librarian %}
+              {% if book.is_premium %}
+                {% if not sub_str or sub_str < today_str %}
+                  <button class="btn btn-secondary w-100" disabled>Только по подписке</button>
+                  <button type="button" class="btn btn-outline-primary w-100 mt-2 js-open-subscribe">Оформить</button>
+                {% else %}
+                  <form method="post" action="{% url 'books:book_borrow' book.pk %}">
+                    {% csrf_token %}
+                    <button class="btn btn-primary w-100"
+                            {% if not book.is_available or book.available_copies|default:0 < 1 %}disabled{% endif %}>
+                      Добавить
+                    </button>
+                  </form>
+                {% endif %}
+              {% else %}
+                <form method="post" action="{% url 'books:book_borrow' book.pk %}">
+                  {% csrf_token %}
+                  <button class="btn btn-primary w-100"
+                          {% if not book.is_available or book.available_copies|default:0 < 1 %}disabled{% endif %}>
+                    Добавить
+                  </button>
+                </form>
+              {% endif %}
+            {% endif %}
+          {% endwith %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="alert alert-info mt-3">Пока нет хитов.</div>
+{% endif %}

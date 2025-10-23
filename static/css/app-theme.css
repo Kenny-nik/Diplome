@@ -1,0 +1,127 @@
+/* ===== Modern Colorful Library Theme ===== */
+
+/* Цвета и фон */
+:root{
+  --bg-1: #0b1020;
+  --bg-2: #101735;
+  --text-main: #e7eaf3;
+  --muted: #a7b0c4;
+
+  --primary-a: #8b5cf6;  /* фиолетовый */
+  --primary-b: #06b6d4;  /* бирюзовый */
+  --accent: #f59e0b;     /* янтарь */
+  --danger: #ef4444;
+
+  --card-bg: rgba(255,255,255,.06);
+  --border: rgba(255,255,255,.08);
+
+  --radius: 14px;
+}
+
+html,body{height:100%}
+body{
+  background:
+    radial-gradient(1000px 600px at -10% -10%, rgba(139,92,246,.18), transparent 60%),
+    radial-gradient(800px 500px at 110% -10%, rgba(6,182,212,.18), transparent 60%),
+    linear-gradient(180deg, var(--bg-1), var(--bg-2));
+  color: var(--text-main);
+}
+
+/* Navbar (glass) */
+.navbar{
+  background: rgba(14,17,33,.55) !important;
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+.navbar .nav-link{color: var(--text-main) !important; opacity:.9}
+.navbar .nav-link:hover{opacity:1}
+
+/* Карточки */
+.card{
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 24px rgba(0,0,0,.25);
+  color: var(--text-main);
+}
+.card-header{border-bottom:1px solid var(--border); background:transparent; color:var(--text-main)}
+
+/* Кнопки */
+.btn-primary{
+  background: linear-gradient(135deg, var(--primary-a), var(--primary-b));
+  border: 0;
+}
+.btn-primary:disabled{opacity:.7}
+.btn-outline-secondary{color:#cfd5e6;border-color:var(--border)}
+.btn-outline-secondary:hover{background:rgba(255,255,255,.06)}
+
+/* Бейджи */
+.badge.bg-warning{background:rgba(245,158,11,.18)!important; color:#ffd48a!important}
+.badge.bg-secondary{background:rgba(255,255,255,.12)!important; color:#cfd5e6!important}
+
+/* Обложки — единый размер везде */
+.cover-4x6{
+  position:relative;
+  width:100%;
+  aspect-ratio:2/3;             /* 4x6 */
+  overflow:hidden;
+  border-radius:12px;
+  background:rgba(255,255,255,.03);
+}
+.cover-4x6 img{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center;
+}
+
+/* Бейдж "Премиум" */
+.premium-badge{
+  position:absolute; top:10px; right:10px;
+  background:linear-gradient(135deg,#ffd700,#ffb300);
+  color:#111; font-weight:800; font-size:.75rem; letter-spacing:.3px;
+  padding:.28rem .55rem; border-radius:.4rem;
+  box-shadow:0 3px 10px rgba(0,0,0,.25); z-index:3;
+}
+
+/* Рекламная плашка + читаемый текст */
+.ad-box{
+  min-height:220px;
+  border:2px dashed rgba(255,255,255,.25);
+  border-radius:16px;
+  background:linear-gradient(180deg,#1b2431,#161d29);
+  display:flex; align-items:center; justify-content:center;
+  padding:1rem;
+}
+.ad-box .ad-text{
+  color:rgba(230,240,255,.9);
+  text-shadow:0 1px 1px rgba(0,0,0,.7);
+  font-weight:700; font-size:1.05rem;
+}
+
+/* Футер на тёмном фоне — читаемость */
+footer, .footer, .app-footer, .site-footer{
+  color:rgba(230,240,255,.7);
+}
+footer .text-muted{ color:rgba(230,240,255,.65)!important; }
+
+/* Карточки */
+.book-card{ border-radius:14px; transition:transform .15s ease, box-shadow .15s ease; }
+.book-card:hover{ transform:translateY(-3px); box-shadow:0 10px 24px rgba(0,0,0,.2); }
+
+.card .stretched-link{ z-index:1; }
+.card .btn{ position:relative; z-index:2; }
+
+
+.preview-box{
+  background:rgba(255,255,255,.06);
+  color:rgba(240,243,255,.95);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:12px;
+  padding:1rem 1.2rem;
+  white-space:pre-wrap;
+}
+
+.text-soft{ color: rgba(240,243,255,.8)!important; }

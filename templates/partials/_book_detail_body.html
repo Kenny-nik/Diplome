@@ -1,0 +1,52 @@
+{% load static %}
+<div class="row g-4">
+  <div class="col-12 col-lg-4">
+    <div class="cover-3x4 shadow-sm position-relative">
+      {% if book.is_premium %}<div class="premium-badge">Премиум</div>{% endif %}
+      {% if book.preferred_cover %}
+        <img src="{{ book.preferred_cover }}" alt="{{ book.title }}">
+      {% else %}
+        <img src="{% static 'img/cover-placeholder.png' %}" alt="{{ book.title }}">
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-8">
+    <h3 class="mb-1">{{ book.title }}</h3>
+    <div class="text-muted mb-3">{{ book.author }}</div>
+
+    <dl class="row">
+      <dt class="col-sm-3">Жанр</dt><dd class="col-sm-9">{{ book.get_genre_display }}</dd>
+      <dt class="col-sm-3">Год</dt><dd class="col-sm-9">{{ book.publication_year }}</dd>
+      <dt class="col-sm-3">ISBN</dt><dd class="col-sm-9">{{ book.isbn }}</dd>
+      <dt class="col-sm-3">Рейтинг</dt><dd class="col-sm-9">★ {{ book.rating|floatformat:1 }}</dd>
+      <dt class="col-sm-3">В наличии</dt><dd class="col-sm-9">{{ book.available_copies|default:0 }}</dd>
+    </dl>
+
+    {% if book.description %}
+      <div class="mb-3 card p-3" style="max-height:320px; overflow:auto">
+        {{ book.description }}
+      </div>
+    {% endif %}
+
+    <div class="d-flex gap-2">
+      {% if user.is_authenticated and not user.is_librarian %}
+        {% if book.is_premium and not has_premium %}
+          <button class="btn btn-secondary" disabled>Только по подписке</button>
+          <a class="btn btn-outline-secondary" href="{% url 'users:subscribe' %}">Оформить подписку</a>
+        {% elif not book.is_available %}
+          <button class="btn btn-secondary" disabled>Нет в наличии</button>
+        {% elif book.available_copies|default:0 < 1 %}
+          <button class="btn btn-secondary" disabled>Нет экземпляров</button>
+        {% else %}
+          <form method="post" action="{% url 'books:book_borrow' book.pk %}">
+            {% csrf_token %}
+            <button class="btn btn-primary">Добавить</button>
+          </form>
+        {% endif %}
+      {% endif %}
+
+      <button type="button" class="btn btn-outline-secondary js-read-btn">Читать</button>
+    </div>
+  </div>
+</div>
