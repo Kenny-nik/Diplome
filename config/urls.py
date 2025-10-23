@@ -7,6 +7,13 @@ from django.views.generic import RedirectView
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from apps.books.views import HomePageView
 
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+    TokenVerifyView,
+    TokenBlacklistView,
+)
+
 urlpatterns = [
     # Админка
     path("admin/", admin.site.urls),
@@ -32,6 +39,11 @@ urlpatterns = [
     # API
     path("api/v1/books/", include("apps.books.api_urls")),
     path("api/v1/loans/", include("apps.loans.api_urls")),
+    path("api/v1/auth/jwt/create/", TokenObtainPairView.as_view(), name="jwt_create"),
+    path("api/v1/auth/jwt/refresh/", TokenRefreshView.as_view(), name="jwt_refresh"),
+    path("api/v1/auth/jwt/verify/", TokenVerifyView.as_view(), name="jwt_verify"),
+    path("api/v1/auth/jwt/logout/", TokenBlacklistView.as_view(), name="jwt_logout"),
+    path("api/v1/authors/", include("apps.authors.api_urls")),
 
     # Документация API
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),

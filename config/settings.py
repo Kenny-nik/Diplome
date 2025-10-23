@@ -63,12 +63,14 @@ INSTALLED_APPS = [
     "corsheaders",
     "django_filters",
     "drf_spectacular",
+    "rest_framework_simplejwt.token_blacklist",
 
     # Local apps
     "apps.users",
     "apps.books",
     "apps.loans",
     "apps.librarian",
+    "apps.authors",
 ]
 
 # --- Middleware ---
@@ -106,6 +108,16 @@ SPECTACULAR_SETTINGS = {
     "TITLE": "Diplome API",
     "DESCRIPTION": "Auto-generated API documentation",
     "VERSION": "1.0.0",
+    "SECURITY": [{"BearerAuth": []}],
+    "COMPONENTS": {
+        "securitySchemes": {
+            "BearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+            }
+        }
+    },
 }
 
 # --- Пользовательская модель ---
